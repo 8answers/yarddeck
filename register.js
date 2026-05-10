@@ -6,9 +6,27 @@ const SUPABASE_CDN_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 const REGISTRATIONS_TABLE = "tournament_registrations";
 const TOURNAMENT_NAME = "The Yard Knockout";
 const TOURNAMENT_SLUG = "the_yard_knockout";
+const LAST_REGISTRATION_EMAIL_KEY = "yarddeck_last_registration_email";
 
 let isSubmitting = false;
 let supabaseClientPromise = null;
+
+function normalizeEmailForMatch(rawEmail) {
+  const email = String(rawEmail || "").trim().toLowerCase();
+  if (!email.includes("@")) return email;
+
+  const [localPartRaw, domainRaw] = email.split("@");
+  const localPart = String(localPartRaw || "");
+  const domain = String(domainRaw || "");
+
+  if (domain === "gmail.com" || domain === "googlemail.com") {
+    const localWithoutPlus = localPart.split("+")[0];
+    const localWithoutDots = localWithoutPlus.replace(/\./g, "");
+    return `${localWithoutDots}@gmail.com`;
+  }
+
+  return `${localPart}@${domain}`;
+}
 
 function updatePaymentState() {
   paymentButton.disabled = isSubmitting || !form.checkValidity();
@@ -65,7 +83,7 @@ function getFormPayload() {
     tournament_slug: TOURNAMENT_SLUG,
     full_name: String(formData.get("full-name") || "").trim(),
     skill_level: Number(formData.get("skill")),
-    email: String(formData.get("email") || "").trim().toLowerCase(),
+    email: normalizeEmailForMatch(formData.get("email")),
     phone_country_code: "+91",
     phone_number: String(formData.get("phone") || "").trim(),
     terms_accepted: Boolean(formData.get("terms")),
@@ -98,6 +116,7 @@ form.addEventListener("submit", async (event) => {
   try {
     const payload = getFormPayload();
     await saveRegistration(payload);
+    localStorage.setItem(LAST_REGISTRATION_EMAIL_KEY, payload.email);
     window.location.href = "/registration_success/";
   } catch (error) {
     console.error("Failed to save registration:", error);
