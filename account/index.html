@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign In | Yard Deck</title>
+    <meta name="description" content="Sign in to Yard Deck.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Jaldi:wght@400&family=Jersey+10&family=Nata+Sans:wght@400;700&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="site-header register-header" aria-label="Sign in header">
+      <a class="brand" href="/" aria-label="Yard Deck home">
+        <img src="/assets/logo.svg" alt="Yard Deck">
+      </a>
+    </header>
+
+    <main class="signin-page">
+      <section class="signin-panel" aria-labelledby="signin-title">
+        <h1 id="signin-title">Sign In</h1>
+        <a class="google-signin" href="/user-account/" data-login-link>
+          <img src="/assets/google.svg" alt="" aria-hidden="true">
+          <span>Continue with Google</span>
+        </a>
+        <p class="signin-terms">
+          <span>By continuing, you agree to our</span>
+          <a href="#terms">Terms &amp; Conditions and Privacy Policy.</a>
+        </p>
+      </section>
+    </main>
+    <script src="/auth.js"></script>
+  </body>
+</html>
