@@ -17,6 +17,8 @@ html {
 }
 
 body {
+  display: flex;
+  flex-direction: column;
   margin: 0;
   min-height: 100vh;
   background: var(--black);
@@ -46,6 +48,31 @@ img {
   padding: 16px;
   border-bottom: 1px solid var(--white);
   background: var(--black);
+}
+
+.policy-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 88px;
+  padding: 16px;
+  border-bottom: 1px solid var(--white);
+  background: var(--black);
+}
+
+.policy-nav {
+  display: flex;
+  align-items: center;
+  gap: 80px;
+  font-family: "Jersey 10", Impact, sans-serif;
+  font-size: 24px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.policy-nav .active {
+  color: var(--yellow);
 }
 
 .register-header {
@@ -135,8 +162,7 @@ img {
 .tournaments-page {
   display: flex;
   justify-content: center;
-  min-height: calc(100vh - 88px);
-  padding: 32px 24px 120px;
+  padding: 32px 24px 64px;
 }
 
 .rankings-page {
@@ -366,6 +392,89 @@ img {
 
 .signin-terms a {
   color: var(--yellow);
+}
+
+.policy-page {
+  display: flex;
+  justify-content: center;
+  padding: 40px 48px 96px;
+}
+
+.policy-content {
+  width: min(100%, 1253px);
+  color: var(--white);
+}
+
+.policy-content h1 {
+  margin: 0 0 24px;
+  font-family: "Jersey 10", Impact, sans-serif;
+  font-size: 40px;
+  font-weight: 400;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.policy-content p,
+.policy-content li {
+  font-size: 32px;
+  line-height: 1.25;
+}
+
+.policy-content p {
+  margin: 0 0 24px;
+}
+
+.policy-content ul {
+  margin: 0 0 24px;
+  padding-left: 48px;
+}
+
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  margin-top: auto;
+  padding: 16px;
+  border-top: 1px solid var(--white);
+  background: var(--black);
+  color: var(--white);
+  font-family: "Jersey 10", Impact, sans-serif;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.footer-logo {
+  width: 106px;
+  height: 128px;
+  flex: 0 0 auto;
+}
+
+.footer-logo img {
+  width: 100%;
+  height: 100%;
+}
+
+.footer-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 48px;
+  text-align: right;
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  white-space: nowrap;
+}
+
+.footer-email,
+.footer-content p {
+  margin: 0;
+  white-space: nowrap;
 }
 
 .user-account-section {
@@ -1177,6 +1286,31 @@ img {
     background: var(--yellow);
   }
 
+  .policy-header {
+    align-items: flex-start;
+    gap: 24px;
+  }
+
+  .policy-nav {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 18px 32px;
+  }
+
+  .site-footer {
+    align-items: flex-start;
+  }
+
+  .footer-content {
+    gap: 32px;
+  }
+
+  .footer-links {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+  }
+
   .home-page {
     padding-inline: 18px;
   }
@@ -1248,6 +1382,63 @@ img {
   .nav-links {
     gap: 14px 18px;
     font-size: 22px;
+  }
+
+  .policy-header {
+    min-height: auto;
+    padding: 12px;
+  }
+
+  .policy-nav {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 14px;
+    font-size: 22px;
+  }
+
+  .policy-page {
+    padding: 28px 18px 64px;
+  }
+
+  .policy-content h1 {
+    font-size: 32px;
+  }
+
+  .policy-content p,
+  .policy-content li {
+    font-size: 20px;
+  }
+
+  .policy-content ul {
+    padding-left: 24px;
+  }
+
+  .site-footer {
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    text-align: center;
+  }
+
+  .footer-logo {
+    width: 80px;
+    height: 96px;
+  }
+
+  .footer-content,
+  .footer-links {
+    align-items: center;
+    text-align: center;
+  }
+
+  .footer-content {
+    gap: 24px;
+    font-size: 22px;
+  }
+
+  .footer-email,
+  .footer-content p {
+    white-space: normal;
   }
 
   .home-page {
