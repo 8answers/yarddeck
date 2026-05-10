@@ -12,10 +12,28 @@ create table if not exists public.tournament_registrations (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.tournament_waitlist (
+  id bigserial primary key,
+  tournament_name text not null,
+  tournament_slug text not null,
+  full_name text not null,
+  skill_level integer not null check (skill_level between 1 and 10),
+  email text not null check (email ~* '^[A-Z0-9._%+-]+@gmail\.com$'),
+  phone_country_code text not null default '+91',
+  phone_number text not null,
+  terms_accepted boolean not null default false,
+  source_path text,
+  created_at timestamptz not null default now()
+);
+
 create unique index if not exists tournament_registrations_unique_email_per_event
   on public.tournament_registrations (tournament_slug, email);
 
+create unique index if not exists tournament_waitlist_unique_email_per_event
+  on public.tournament_waitlist (tournament_slug, email);
+
 alter table public.tournament_registrations enable row level security;
+alter table public.tournament_waitlist enable row level security;
 
 create or replace function public.normalize_registration_email(raw_email text)
 returns text
@@ -59,11 +77,30 @@ begin
 end;
 $$;
 
+create or replace function public.get_tournament_registration_count(p_tournament_slug text)
+returns bigint
+language sql
+security definer
+set search_path = public
+as $$
+  select count(*)
+  from public.tournament_registrations tr
+  where tr.tournament_slug = p_tournament_slug;
+$$;
+
 grant execute on function public.has_registered_for_tournament(text) to authenticated;
+grant execute on function public.get_tournament_registration_count(text) to anon, authenticated;
 
 drop policy if exists "Public can insert registrations" on public.tournament_registrations;
 create policy "Public can insert registrations"
   on public.tournament_registrations
+  for insert
+  to anon
+  with check (terms_accepted = true);
+
+drop policy if exists "Public can insert waitlist" on public.tournament_waitlist;
+create policy "Public can insert waitlist"
+  on public.tournament_waitlist
   for insert
   to anon
   with check (terms_accepted = true);

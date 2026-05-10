@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Register | Yard Deck</title>
-    <meta name="description" content="Register for The Yard Knockout pickleball tournament by Yard Deck.">
+    <title>Notify Me | Yard Deck</title>
+    <meta name="description" content="Join the waitlist for The Yard Knockout pickleball tournament by Yard Deck.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
-    <header class="site-header register-header" aria-label="Registration header">
+    <header class="site-header register-header" aria-label="Notify header">
       <a class="brand" href="/" aria-label="Yard Deck home">
         <img src="/assets/logo.svg" alt="Yard Deck">
       </a>
@@ -72,11 +72,11 @@
         </a>
 
         <div class="registration-intro">
-          <h2 id="registration-title">Registration Information</h2>
-          <p>Please fill in the following details to complete your tournament registration</p>
+          <h2 id="registration-title">Waitlist Information</h2>
+          <p>Please fill in the following details and we will notify you if a player spot opens up</p>
         </div>
 
-        <form class="registration-form" action="/success.html" method="get">
+        <form class="registration-form" action="/waitlist_confirmed/" method="get" data-mode="waitlist">
           <label class="field">
             <span>Full Name*</span>
             <input type="text" name="full-name" autocomplete="name" required>
@@ -131,27 +131,9 @@
             </span>
           </label>
 
-          <button class="payment-button payment-button--cashfree" type="submit" disabled>
-            <span class="cashfree-logo-wrap">
-              <img
-                src="https://cashfree-checkoutcartimages-prod.cashfree.com/Frame 2Zacbt60ssqf0_prod.svg"
-                alt=""
-                aria-hidden="true"
-                class="cashfree-logo-main"
-              >
-            </span>
-            <span class="cashfree-text-wrap">
-              <span class="cashfree-payment-label">Payment</span>
-              <span class="cashfree-powered">
-                <span>Powered By Cashfree</span>
-                <img
-                  src="https://cashfreelogo.cashfree.com/cashfreepayments/logosvgs/Group_4355.svg"
-                  alt=""
-                  aria-hidden="true"
-                  class="cashfree-logo-secondary"
-                >
-              </span>
-            </span>
+          <button class="payment-button" type="submit" disabled>
+            Notify
+            <img src="/assets/notify.svg" alt="" aria-hidden="true">
           </button>
         </form>
       </section>

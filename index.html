@@ -46,7 +46,7 @@
       <section class="event-section" aria-labelledby="event-title">
         <p class="new-label">New</p>
 
-        <article class="event-card" id="tournaments">
+        <article class="event-card" id="tournaments" data-home-event-card>
           <div class="event-logo-panel">
             <div class="event-logo-crop">
               <img src="assets/card-logo.png" alt="The Yard Knockout">
@@ -61,7 +61,7 @@
                 <img src="assets/date.svg" alt="" aria-hidden="true">
                 <span>Date: 23<sup>rd</sup> May, 2026</span>
               </p>
-              <p class="detail-row">
+              <p class="detail-row" data-home-time-row>
                 <img src="assets/time.svg" alt="" aria-hidden="true">
                 <span>Time: 8:30 AM - 2:00 PM</span>
               </p>
@@ -84,13 +84,13 @@
             </div>
 
             <div class="event-actions">
-              <p class="status-pill">
+              <p class="status-pill" data-home-status-pill>
                 <img src="assets/status-dot.svg" alt="" aria-hidden="true">
-                Registration Open
+                <span data-home-status-text>Registration Open</span>
               </p>
-              <a class="small-cta" href="/registration/The_Yard_Knockout/">
-                Register Now
-                <img src="assets/arrow-light.svg" alt="" aria-hidden="true">
+              <a class="small-cta" href="/registration/The_Yard_Knockout/" data-home-card-cta>
+                <span data-home-card-cta-text>Register Now</span>
+                <img src="assets/arrow-light.svg" alt="" aria-hidden="true" data-home-card-cta-icon>
               </a>
             </div>
           </div>
@@ -98,8 +98,8 @@
 
         <img class="poster" src="assets/poster.png" alt="The Yard Knockout tournament poster">
 
-        <a class="primary-cta" id="register" href="/registration/The_Yard_Knockout/">
-          Register Now
+        <a class="primary-cta" id="register" href="/registration/The_Yard_Knockout/" data-home-primary-cta>
+          <span data-home-primary-cta-text>Register Now</span>
           <img src="assets/arrow-large.svg" alt="" aria-hidden="true">
         </a>
       </section>

@@ -3,6 +3,7 @@
   --white: #fff;
   --yellow: #f7d850;
   --green: #00ff11;
+  --danger: #ff2424;
   --gray-panel: #595658;
   --content-width: 927px;
 }
@@ -599,6 +600,14 @@ img {
   background: var(--black);
 }
 
+.event-card--waitlist {
+  border-color: var(--danger);
+}
+
+.event-card--waitlist [data-home-time-row] {
+  display: none;
+}
+
 .event-logo-panel {
   display: flex;
   height: 150px;
@@ -703,6 +712,22 @@ img {
   height: 8px;
 }
 
+.status-pill--waitlist {
+  border-color: var(--danger);
+}
+
+.status-pill--waitlist img {
+  display: none;
+}
+
+.status-pill--waitlist::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+}
+
 .small-cta,
 .primary-cta {
   display: flex;
@@ -724,6 +749,37 @@ img {
 .small-cta img {
   width: 8px;
   height: 13px;
+}
+
+.event-card--waitlist .event-actions {
+  flex-basis: auto;
+  align-items: flex-end;
+}
+
+.small-cta--waitlist {
+  min-width: 294px;
+  justify-content: center;
+  gap: 16px;
+  border-color: var(--white);
+  background: var(--black);
+  color: #fff;
+  text-align: center;
+  font-family: "Nata Sans", Arial, sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+}
+
+.small-cta--waitlist img {
+  width: 8px;
+  height: 13px;
+}
+
+.primary-cta--waitlist {
+  border-color: var(--white);
+  background: var(--black);
+  color: var(--white);
 }
 
 .poster {
@@ -1045,6 +1101,81 @@ img {
   transform: rotate(90deg);
 }
 
+.payment-button--cashfree {
+  height: auto;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 10px;
+  width: fit-content;
+  border: 1px solid var(--black);
+  border-radius: 15px;
+  background: var(--black);
+  color: var(--white);
+  font-family: Arial, sans-serif;
+  font-weight: 400;
+}
+
+.payment-button--cashfree img {
+  transform: none;
+}
+
+.cashfree-logo-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.cashfree-logo-main {
+  width: 40px;
+  height: 40px;
+}
+
+.cashfree-text-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-left: 10px;
+  margin-right: 10px;
+  line-height: 1;
+}
+
+.cashfree-payment-label {
+  margin-bottom: 5px;
+  color: var(--white);
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+}
+
+.cashfree-powered {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--white);
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+}
+
+.cashfree-logo-secondary {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+
+.registration-form[data-mode="waitlist"] .payment-button img {
+  width: 25px;
+  height: 27px;
+  transform: none;
+}
+
+.registration-form:not([data-mode="waitlist"]) .payment-button--cashfree {
+  font-size: inherit;
+}
+
 .payment-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -1193,6 +1324,37 @@ img {
 .primary-cta:hover,
 .account-link:hover {
   background: var(--yellow);
+}
+
+.small-cta--waitlist:hover,
+.primary-cta--waitlist:hover {
+  border-color: var(--white);
+  background: #101010;
+  color: var(--white);
+}
+
+.waitlist-message {
+  display: flex;
+  width: min(100%, 605px);
+  flex-direction: column;
+  gap: 32px;
+  padding-top: 56px;
+}
+
+.waitlist-message h1,
+.waitlist-message p {
+  margin: 0;
+}
+
+.waitlist-message h1 {
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.waitlist-message p {
+  font-size: 24px;
+  line-height: 1.25;
 }
 
 @media (max-width: 1200px) {
@@ -1502,7 +1664,8 @@ img {
 
   .registration-event-copy h1,
   .registration-intro h2,
-  .success-message h1 {
+  .success-message h1,
+  .waitlist-message h1 {
     font-size: 26px;
   }
 
@@ -1536,6 +1699,7 @@ img {
   .consent-field,
   .payment-button,
   .success-message p,
+  .waitlist-message p,
   .help-block,
   .contact-block a {
     font-size: 20px;
@@ -1571,6 +1735,11 @@ img {
     padding-top: 24px;
   }
 
+  .waitlist-message {
+    gap: 24px;
+    padding-top: 24px;
+  }
+
   .event-actions {
     flex-direction: column;
     align-items: stretch;
@@ -1578,6 +1747,13 @@ img {
 
   .small-cta {
     width: 100%;
+  }
+
+  .small-cta--waitlist {
+    min-width: 0;
+    width: 100%;
+    justify-content: center;
+    font-size: 16px;
   }
 
   .primary-cta {
