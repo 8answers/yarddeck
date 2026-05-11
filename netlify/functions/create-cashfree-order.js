@@ -22,6 +22,17 @@ function buildOrderId() {
   return `yarddeck_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function buildCustomerId(email) {
+  const safeEmailPrefix = cleanText(email)
+    .toLowerCase()
+    .split("@")[0]
+    .replace(/[^a-z0-9_-]/g, "_")
+    .replace(/_+/g, "_")
+    .slice(0, 40);
+
+  return `yarddeck_${safeEmailPrefix || "player"}`;
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return json(405, { error: "Method not allowed." });
@@ -67,7 +78,7 @@ exports.handler = async (event) => {
     order_amount: TOURNAMENT_AMOUNT,
     order_currency: "INR",
     customer_details: {
-      customer_id: email,
+      customer_id: buildCustomerId(email),
       customer_name: fullName,
       customer_email: email,
       customer_phone: phoneNumber,
