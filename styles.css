@@ -1158,12 +1158,14 @@ img {
 }
 
 .cashfree-payment-label {
+  width: 100%;
   margin-bottom: 5px;
   color: var(--white);
   font-family: Arial, sans-serif;
   font-size: 14px;
   font-style: normal;
   font-weight: 400;
+  text-align: center;
 }
 
 .cashfree-powered {
@@ -1181,6 +1183,14 @@ img {
   width: 16px;
   height: 16px;
   vertical-align: middle;
+}
+
+.cashfree-button-arrow {
+  width: 22.84px;
+  height: 24px;
+  margin-left: 2px;
+  flex: 0 0 auto;
+  transform: rotate(90deg);
 }
 
 .registration-form[data-mode="waitlist"] .payment-button img {
