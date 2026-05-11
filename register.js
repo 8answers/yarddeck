@@ -226,6 +226,19 @@ function recordOtpSend(email) {
   const history = getOtpSendHistory();
   history[email] = [...getRecentOtpSendTimes(email), Date.now()];
   setOtpSendHistory(history);
+  return history[email].length;
+}
+
+function getOtpSentMessage(sendCount) {
+  if (sendCount === 1) {
+    return "A verification code has been sent to your email.";
+  }
+
+  if (sendCount === 2) {
+    return "A new verification code has been sent to your email.";
+  }
+
+  return "Another new verification code has been sent to your email.";
 }
 
 function getOtpLimitRemainingSeconds(email) {
@@ -495,9 +508,9 @@ async function sendEmailOtp() {
     if (error) throw error;
 
     otpSentForEmail = email;
-    recordOtpSend(email);
+    const sendCount = recordOtpSend(email);
     startOtpCooldown();
-    setOtpStatus("OTP sent to your Gmail", "success");
+    setOtpStatus(getOtpSentMessage(sendCount), "success");
     otpInputs[0]?.focus();
   } catch (error) {
     console.error("Failed to send OTP:", error);
