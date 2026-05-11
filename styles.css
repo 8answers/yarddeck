@@ -141,6 +141,11 @@ img {
   filter: none;
 }
 
+.account-link,
+.success-account {
+  display: none !important;
+}
+
 .account-icon-link {
   display: inline-flex;
   width: 132px;
