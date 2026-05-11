@@ -499,7 +499,6 @@ async function sendEmailOtp() {
       startOtpLimitTimer(email);
     } else {
       startOtpCooldown();
-      setOtpStatus("Please wait until the timer ends before requesting another OTP.");
     }
   } finally {
     isSendingOtp = false;
