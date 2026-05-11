@@ -10,7 +10,8 @@ const TOURNAMENT_SLUG = "the_yard_knockout";
 const LAST_REGISTRATION_EMAIL_KEY = "yarddeck_last_registration_email";
 const TEST_REGISTRATION_LIMIT = 32;
 const REGISTRATION_COUNT_RPC = "get_tournament_registration_count";
-const CASHFREE_PAYMENT_URL = "https://payments.cashfree.com/forms/theyardknockout";
+const CASHFREE_ORDER_FUNCTION_URL = "/.netlify/functions/create-cashfree-order";
+const CASHFREE_MODE = "sandbox";
 
 const FORM_MODE = String(form?.dataset.mode || "registration").toLowerCase();
 const SUCCESS_REDIRECT_BY_MODE = {
@@ -167,17 +168,39 @@ function getFormPayload() {
   };
 }
 
-function redirectToCashfreePayment() {
-  try {
-    if (window.parent && window.parent !== window) {
-      window.parent.location.href = CASHFREE_PAYMENT_URL;
-      return;
-    }
-  } catch (error) {
-    console.warn("Parent redirect failed, falling back to current window:", error);
+async function createCashfreeOrder(payload) {
+  const response = await fetch(CASHFREE_ORDER_FUNCTION_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const responseBody = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(
+      responseBody.error || "Unable to create Cashfree payment order."
+    );
   }
 
-  window.location.href = CASHFREE_PAYMENT_URL;
+  if (!responseBody.paymentSessionId || !responseBody.orderId) {
+    throw new Error("Cashfree payment session was not returned.");
+  }
+
+  return responseBody;
+}
+
+async function openCashfreeCheckout(paymentSessionId) {
+  if (typeof window.Cashfree !== "function") {
+    throw new Error("Cashfree checkout SDK is not loaded.");
+  }
+
+  const cashfree = window.Cashfree({ mode: CASHFREE_MODE });
+  return cashfree.checkout({
+    paymentSessionId,
+    redirectTarget: "_self",
+  });
 }
 
 async function saveRegistration(payload) {
@@ -216,10 +239,25 @@ if (form && paymentButton) {
       }
 
       const payload = getFormPayload();
-      await saveRegistration(payload);
+      let paymentOrder = null;
+
+      if (FORM_MODE === "registration") {
+        paymentOrder = await createCashfreeOrder(payload);
+      }
+
+      await saveRegistration({
+        ...payload,
+        ...(paymentOrder
+          ? {
+              payment_status: "pending",
+              cashfree_order_id: paymentOrder.orderId,
+              cashfree_payment_session_id: paymentOrder.paymentSessionId,
+            }
+          : {}),
+      });
       localStorage.setItem(LAST_REGISTRATION_EMAIL_KEY, payload.email);
       if (FORM_MODE === "registration") {
-        redirectToCashfreePayment();
+        await openCashfreeCheckout(paymentOrder.paymentSessionId);
         return;
       }
       window.location.href =

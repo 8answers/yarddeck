@@ -8,6 +8,11 @@ create table if not exists public.tournament_registrations (
   phone_country_code text not null default '+91',
   phone_number text not null,
   terms_accepted boolean not null default false,
+  payment_status text not null default 'pending'
+    check (payment_status in ('pending', 'paid', 'failed', 'cancelled')),
+  cashfree_order_id text,
+  cashfree_payment_session_id text,
+  paid_at timestamptz,
   source_path text,
   created_at timestamptz not null default now()
 );
@@ -31,6 +36,23 @@ create unique index if not exists tournament_registrations_unique_email_per_even
 
 create unique index if not exists tournament_waitlist_unique_email_per_event
   on public.tournament_waitlist (tournament_slug, email);
+
+alter table public.tournament_registrations
+  add column if not exists payment_status text not null default 'pending',
+  add column if not exists cashfree_order_id text,
+  add column if not exists cashfree_payment_session_id text,
+  add column if not exists paid_at timestamptz;
+
+alter table public.tournament_registrations
+  drop constraint if exists tournament_registrations_payment_status_check;
+
+alter table public.tournament_registrations
+  add constraint tournament_registrations_payment_status_check
+  check (payment_status in ('pending', 'paid', 'failed', 'cancelled'));
+
+create unique index if not exists tournament_registrations_unique_cashfree_order_id
+  on public.tournament_registrations (cashfree_order_id)
+  where cashfree_order_id is not null;
 
 alter table public.tournament_registrations enable row level security;
 alter table public.tournament_waitlist enable row level security;
