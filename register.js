@@ -22,7 +22,7 @@ const CASHFREE_MODE = "sandbox";
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
 const OTP_SEND_LIMIT = 3;
 const OTP_SEND_LIMIT_WINDOW_MS = 60 * 60 * 1000;
-const OTP_SEND_HISTORY_KEY = "yarddeck_otp_send_history_v2";
+const OTP_SEND_HISTORY_KEY = "yarddeck_otp_send_history_v3";
 const OTP_BUTTON_TEXT = "Get OTP";
 
 const FORM_MODE = String(form?.dataset.mode || "registration").toLowerCase();
@@ -167,6 +167,13 @@ function updateOtpButtonText() {
       : OTP_BUTTON_TEXT;
 }
 
+function updateOtpLimitButtonText(remainingSeconds) {
+  if (!sendOtpButton) return;
+  sendOtpButton.textContent = `${OTP_BUTTON_TEXT} (${formatOtpLimitTime(
+    remainingSeconds
+  )})`;
+}
+
 function startOtpCooldown(seconds = OTP_RESEND_COOLDOWN_SECONDS) {
   otpCooldownRemaining = seconds;
   updateOtpButtonText();
@@ -252,11 +259,13 @@ function startOtpLimitTimer(email) {
       clearInterval(otpLimitTimer);
       otpLimitTimer = null;
       setOtpStatus("");
+      updateOtpButtonText();
       updatePaymentState();
       return;
     }
 
     setOtpLimitStatus(remainingSeconds);
+    updateOtpLimitButtonText(remainingSeconds);
   };
 
   tick();
@@ -443,8 +452,7 @@ async function sendEmailOtp() {
 
   const supabase = await getSupabaseClient();
   const email = normalizeEmailForMatch(emailInput.value);
-  const limitRemainingSeconds = getOtpLimitRemainingSeconds(email);
-  if (limitRemainingSeconds > 0) {
+  if (getRecentOtpSendTimes(email).length >= OTP_SEND_LIMIT) {
     startOtpLimitTimer(email);
     updatePaymentState();
     return;
@@ -487,12 +495,11 @@ async function sendEmailOtp() {
     otpInputs[0]?.focus();
   } catch (error) {
     console.error("Failed to send OTP:", error);
-    const nextLimitRemainingSeconds = getOtpLimitRemainingSeconds(email);
-    if (nextLimitRemainingSeconds > 0) {
+    if (getRecentOtpSendTimes(email).length >= OTP_SEND_LIMIT) {
       startOtpLimitTimer(email);
     } else {
       startOtpCooldown();
-      setOtpStatus("Please wait 1 hr (01:00) before requesting another OTP's.");
+      setOtpStatus("Please wait until the timer ends before requesting another OTP.");
     }
   } finally {
     isSendingOtp = false;
