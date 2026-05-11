@@ -1183,17 +1183,6 @@ img {
   vertical-align: middle;
 }
 
-.cashfree-button-arrow {
-  display: block;
-  width: 20px;
-  height: 20px;
-  margin-left: 2px;
-  flex: 0 0 auto;
-  background: var(--white);
-  mask: url("/assets/arrow-light.svg") center / contain no-repeat;
-  -webkit-mask: url("/assets/arrow-light.svg") center / contain no-repeat;
-}
-
 .registration-form[data-mode="waitlist"] .payment-button img {
   width: 25px;
   height: 27px;
