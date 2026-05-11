@@ -31,8 +31,7 @@ create table if not exists public.tournament_waitlist (
   created_at timestamptz not null default now()
 );
 
-create unique index if not exists tournament_registrations_unique_email_per_event
-  on public.tournament_registrations (tournament_slug, email);
+drop index if exists public.tournament_registrations_unique_email_per_event;
 
 create unique index if not exists tournament_waitlist_unique_email_per_event
   on public.tournament_waitlist (tournament_slug, email);

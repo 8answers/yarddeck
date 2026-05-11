@@ -415,22 +415,18 @@ async function checkRegistrationAvailability(supabase, payload) {
 
   const result = Array.isArray(data) ? data[0] : data;
   return {
-    emailRegistered: Boolean(result?.email_registered),
+    emailRegistered: false,
     phoneRegistered: Boolean(result?.phone_registered),
     loggedInRegistered: Boolean(result?.logged_in_registered),
   };
 }
 
 function showDuplicateRegistrationWarnings(availability) {
-  if (availability.emailRegistered) {
-    setFieldError("email", "Gmail ID already registered");
-  }
-
   if (availability.phoneRegistered) {
     setFieldError("phone", "Phone number already registered");
   }
 
-  return availability.emailRegistered || availability.phoneRegistered;
+  return availability.phoneRegistered;
 }
 
 async function sendEmailOtp() {
@@ -475,11 +471,6 @@ async function sendEmailOtp() {
       phone_number: "",
     };
     const availability = await checkRegistrationAvailability(supabase, payload);
-    if (availability.emailRegistered) {
-      setFieldError("email", "Gmail ID already registered");
-      return;
-    }
-
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -695,7 +686,7 @@ if (form && paymentButton) {
           "Registration already exists for this email.",
           saveError
         );
-        setFieldError("email", "Gmail ID already registered");
+        setFormStatus("Registration already exists for this phone number.");
         return;
       }
       localStorage.setItem(LAST_REGISTRATION_EMAIL_KEY, payload.email);
