@@ -362,7 +362,7 @@ async function sendEmailOtp() {
     otpInputs[0]?.focus();
   } catch (error) {
     console.error("Failed to send OTP:", error);
-    setOtpStatus(error.message || "Could not send OTP. Please try again.");
+    setOtpStatus("Please wait a minute before requesting another OTP.");
   } finally {
     isSendingOtp = false;
     updatePaymentState();
