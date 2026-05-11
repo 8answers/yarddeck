@@ -496,13 +496,30 @@ function showDuplicateRegistrationWarnings(availability) {
 }
 
 async function checkNotifyEmailExists(supabase, email) {
-  const { data, error } = await supabase.rpc(WAITLIST_EMAIL_EXISTS_RPC, {
+  const rpcResult = await supabase.rpc(WAITLIST_EMAIL_EXISTS_RPC, {
     p_tournament_slug: TOURNAMENT_SLUG,
     p_email: email,
   });
 
+  if (!rpcResult.error) {
+    return Boolean(rpcResult.data);
+  }
+
+  const rpcCode = String(rpcResult.error.code || "");
+  if (rpcCode !== "PGRST202") {
+    throw rpcResult.error;
+  }
+
+  // Fallback if the RPC function is not yet available in PostgREST cache.
+  const { data, error } = await supabase
+    .from(WAITLIST_TABLE)
+    .select("id")
+    .eq("tournament_slug", TOURNAMENT_SLUG)
+    .eq("email", email)
+    .limit(1);
+
   if (error) throw error;
-  return Boolean(data);
+  return Array.isArray(data) && data.length > 0;
 }
 
 async function checkDuplicateEmailByMode(supabase, email) {
