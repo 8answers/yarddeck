@@ -1186,10 +1186,14 @@ img {
 }
 
 .cashfree-button-arrow {
+  display: block;
   width: 22.84px;
   height: 24px;
   margin-left: 2px;
   flex: 0 0 auto;
+  background: var(--white);
+  mask: url("/assets/payment-arrow.svg") center / contain no-repeat;
+  -webkit-mask: url("/assets/payment-arrow.svg") center / contain no-repeat;
   transform: rotate(90deg);
 }
 
