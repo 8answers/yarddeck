@@ -1094,8 +1094,12 @@ img {
   border-color: var(--yellow);
 }
 
-.otp-inputs[data-invalid="true"] input {
+.otp-inputs[data-status="error"] input {
   border-color: var(--danger);
+}
+
+.otp-inputs[data-status="success"] input {
+  border-color: var(--green);
 }
 
 .skill-options {

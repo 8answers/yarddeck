@@ -20,6 +20,9 @@ const REGISTRATION_AVAILABILITY_RPC = "check_tournament_registration_availabilit
 const CASHFREE_ORDER_FUNCTION_URL = "/.netlify/functions/create-cashfree-order";
 const CASHFREE_MODE = "sandbox";
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
+const OTP_SEND_LIMIT = 3;
+const OTP_SEND_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+const OTP_SEND_HISTORY_KEY = "yarddeck_otp_send_history";
 const OTP_BUTTON_TEXT = "Get OTP";
 
 const FORM_MODE = String(form?.dataset.mode || "registration").toLowerCase();
@@ -40,6 +43,7 @@ let hasAuthSession = false;
 let otpSentForEmail = "";
 let otpCooldownRemaining = 0;
 let otpCooldownTimer = null;
+let otpLimitTimer = null;
 let supabaseClientPromise = null;
 
 function normalizeEmailForMatch(rawEmail) {
@@ -89,6 +93,7 @@ function updatePaymentState() {
       isVerifyingOtp ||
       isEmailVerified ||
       otpCooldownRemaining > 0 ||
+      Boolean(otpLimitTimer) ||
       !emailInput.checkValidity();
   }
 }
@@ -128,17 +133,27 @@ function setOtpStatus(message, type = "error") {
   otpStatus.dataset.status = type;
   otpStatus.hidden = !message;
   if (otpInputGroup) {
-    otpInputGroup.dataset.invalid = type === "error" && message ? "true" : "false";
+    otpInputGroup.dataset.status = message ? type : "";
   }
 }
 
 function resetOtpState() {
   isEmailVerified = false;
   otpSentForEmail = "";
+  otpCooldownRemaining = 0;
+  if (otpCooldownTimer) {
+    clearInterval(otpCooldownTimer);
+    otpCooldownTimer = null;
+  }
+  if (otpLimitTimer) {
+    clearInterval(otpLimitTimer);
+    otpLimitTimer = null;
+  }
   otpInputs.forEach((input) => {
     input.value = "";
     input.disabled = false;
   });
+  updateOtpButtonText();
   setOtpStatus("");
   updatePaymentState();
 }
@@ -171,6 +186,81 @@ function startOtpCooldown(seconds = OTP_RESEND_COOLDOWN_SECONDS) {
       otpCooldownTimer = null;
     }
   }, 1000);
+}
+
+function getOtpSendHistory() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(OTP_SEND_HISTORY_KEY) || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function setOtpSendHistory(history) {
+  localStorage.setItem(OTP_SEND_HISTORY_KEY, JSON.stringify(history));
+}
+
+function getRecentOtpSendTimes(email) {
+  const now = Date.now();
+  const history = getOtpSendHistory();
+  return (Array.isArray(history[email]) ? history[email] : []).filter(
+    (sentAt) => now - Number(sentAt) < OTP_SEND_LIMIT_WINDOW_MS
+  );
+}
+
+function recordOtpSend(email) {
+  const history = getOtpSendHistory();
+  history[email] = [...getRecentOtpSendTimes(email), Date.now()];
+  setOtpSendHistory(history);
+}
+
+function getOtpLimitRemainingSeconds(email) {
+  const recentSends = getRecentOtpSendTimes(email);
+  if (recentSends.length < OTP_SEND_LIMIT) return 0;
+
+  const oldestSend = Math.min(...recentSends);
+  return Math.max(
+    Math.ceil((OTP_SEND_LIMIT_WINDOW_MS - (Date.now() - oldestSend)) / 1000),
+    0
+  );
+}
+
+function formatOtpLimitTime(totalSeconds) {
+  const totalMinutes = Math.max(Math.ceil(totalSeconds / 60), 1);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function setOtpLimitStatus(remainingSeconds) {
+  setOtpStatus(
+    `Please wait 1 hr (${formatOtpLimitTime(
+      remainingSeconds
+    )}) before requesting another OTP's.`
+  );
+}
+
+function startOtpLimitTimer(email) {
+  if (otpLimitTimer) {
+    clearInterval(otpLimitTimer);
+  }
+
+  const tick = () => {
+    const remainingSeconds = getOtpLimitRemainingSeconds(email);
+    if (remainingSeconds <= 0) {
+      clearInterval(otpLimitTimer);
+      otpLimitTimer = null;
+      setOtpStatus("");
+      updatePaymentState();
+      return;
+    }
+
+    setOtpLimitStatus(remainingSeconds);
+  };
+
+  tick();
+  otpLimitTimer = setInterval(tick, 60 * 1000);
 }
 
 function shouldTreatWaitlistErrorAsSuccess(error) {
@@ -357,6 +447,13 @@ async function sendEmailOtp() {
 
   const supabase = await getSupabaseClient();
   const email = normalizeEmailForMatch(emailInput.value);
+  const limitRemainingSeconds = getOtpLimitRemainingSeconds(email);
+  if (limitRemainingSeconds > 0) {
+    startOtpLimitTimer(email);
+    updatePaymentState();
+    return;
+  }
+
   const session = await getCurrentSession(supabase);
   hasAuthSession = Boolean(session);
 
@@ -393,13 +490,19 @@ async function sendEmailOtp() {
     if (error) throw error;
 
     otpSentForEmail = email;
+    recordOtpSend(email);
     startOtpCooldown();
     setOtpStatus("OTP sent to your Gmail", "success");
     otpInputs[0]?.focus();
   } catch (error) {
     console.error("Failed to send OTP:", error);
-    startOtpCooldown();
-    setOtpStatus("Please wait a minute before requesting another OTP.");
+    const nextLimitRemainingSeconds = getOtpLimitRemainingSeconds(email);
+    if (nextLimitRemainingSeconds > 0) {
+      startOtpLimitTimer(email);
+    } else {
+      startOtpCooldown();
+      setOtpStatus("Please wait 1 hr (01:00) before requesting another OTP's.");
+    }
   } finally {
     isSendingOtp = false;
     updatePaymentState();
