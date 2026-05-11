@@ -106,21 +106,23 @@
             </div>
           </fieldset>
 
-          <label class="field">
+          <label class="field" data-field="email">
             <span>Email Address*</span>
             <small>Gmail accounts only.</small>
             <span class="input-with-icon">
               <input type="email" name="email" autocomplete="email" pattern=".+@gmail\.com" required>
               <img src="/assets/gmail.svg" alt="" aria-hidden="true">
             </span>
+            <span class="field-warning" data-field-error="email" hidden></span>
           </label>
 
-          <label class="field">
+          <label class="field" data-field="phone">
             <span>WhatsApp Phone Number *</span>
             <span class="phone-input">
               <span>+91</span>
               <input type="tel" name="phone" autocomplete="tel" required>
             </span>
+            <span class="field-warning" data-field-error="phone" hidden></span>
           </label>
 
           <label class="consent-field">
@@ -153,6 +155,7 @@
               </span>
             </span>
           </button>
+          <p class="form-status" data-form-status hidden></p>
         </form>
       </section>
     </main>

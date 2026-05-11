@@ -1,5 +1,6 @@
 const form = document.querySelector(".registration-form");
 const paymentButton = document.querySelector(".payment-button");
+const formStatus = document.querySelector("[data-form-status]");
 const SUPABASE_URL = "https://hkdeqyyzuajjzjcmfgzx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable__EFfpHtvXJR3zGb5KWs6eg_-j1F6fEf";
 const SUPABASE_CDN_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
@@ -10,6 +11,7 @@ const TOURNAMENT_SLUG = "the_yard_knockout";
 const LAST_REGISTRATION_EMAIL_KEY = "yarddeck_last_registration_email";
 const TEST_REGISTRATION_LIMIT = 32;
 const REGISTRATION_COUNT_RPC = "get_tournament_registration_count";
+const REGISTRATION_AVAILABILITY_RPC = "check_tournament_registration_availability";
 const CASHFREE_ORDER_FUNCTION_URL = "/.netlify/functions/create-cashfree-order";
 const CASHFREE_MODE = "sandbox";
 
@@ -61,6 +63,34 @@ function coerceCountValue(value) {
 function updatePaymentState() {
   if (!form || !paymentButton) return;
   paymentButton.disabled = isSubmitting || !form.checkValidity();
+}
+
+function setFormStatus(message, type = "error") {
+  if (!formStatus) return;
+
+  formStatus.textContent = message;
+  formStatus.dataset.status = type;
+  formStatus.hidden = !message;
+}
+
+function setFieldError(fieldName, message) {
+  const field = form?.querySelector(`[data-field="${fieldName}"]`);
+  const errorNode = form?.querySelector(`[data-field-error="${fieldName}"]`);
+
+  if (field) {
+    field.dataset.invalid = message ? "true" : "false";
+  }
+
+  if (errorNode) {
+    errorNode.textContent = message;
+    errorNode.hidden = !message;
+  }
+}
+
+function clearFieldErrors() {
+  setFieldError("email", "");
+  setFieldError("phone", "");
+  setFormStatus("");
 }
 
 function shouldTreatWaitlistErrorAsSuccess(error) {
@@ -118,8 +148,8 @@ async function getSupabaseClient() {
         SUPABASE_PUBLISHABLE_KEY,
         {
           auth: {
-            persistSession: false,
-            autoRefreshToken: false,
+            persistSession: true,
+            autoRefreshToken: true,
             detectSessionInUrl: false,
           },
         }
@@ -168,6 +198,46 @@ function getFormPayload() {
   };
 }
 
+async function getCurrentSession(supabase) {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    console.warn("Unable to read auth session:", error.message);
+    return null;
+  }
+
+  return data?.session || null;
+}
+
+async function checkRegistrationAvailability(supabase, payload) {
+  const { data, error } = await supabase.rpc(REGISTRATION_AVAILABILITY_RPC, {
+    p_tournament_slug: payload.tournament_slug,
+    p_email: payload.email,
+    p_phone_country_code: payload.phone_country_code,
+    p_phone_number: payload.phone_number,
+  });
+
+  if (error) throw error;
+
+  const result = Array.isArray(data) ? data[0] : data;
+  return {
+    emailRegistered: Boolean(result?.email_registered),
+    phoneRegistered: Boolean(result?.phone_registered),
+    loggedInRegistered: Boolean(result?.logged_in_registered),
+  };
+}
+
+function showDuplicateRegistrationWarnings(availability) {
+  if (availability.emailRegistered) {
+    setFieldError("email", "Gmail ID already registered");
+  }
+
+  if (availability.phoneRegistered) {
+    setFieldError("phone", "Phone number already registered");
+  }
+
+  return availability.emailRegistered || availability.phoneRegistered;
+}
+
 async function createCashfreeOrder(payload) {
   const response = await fetch(CASHFREE_ORDER_FUNCTION_URL, {
     method: "POST",
@@ -210,11 +280,21 @@ async function saveRegistration(payload) {
   if (error) throw error;
 }
 
+function isDuplicateRegistrationError(error) {
+  const code = String(error?.code || "");
+  const message = String(error?.message || "").toLowerCase();
+  return code === "23505" || message.includes("duplicate key");
+}
+
 if (form && paymentButton) {
-  form.addEventListener("input", updatePaymentState);
+  form.addEventListener("input", () => {
+    clearFieldErrors();
+    updatePaymentState();
+  });
   form.addEventListener("change", updatePaymentState);
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    clearFieldErrors();
 
     if (!form.checkValidity()) {
       form.reportValidity();
@@ -239,22 +319,54 @@ if (form && paymentButton) {
       }
 
       const payload = getFormPayload();
+      const session = await getCurrentSession(supabase);
+      const isLoggedIn = Boolean(session);
       let paymentOrder = null;
 
       if (FORM_MODE === "registration") {
+        const availability = await checkRegistrationAvailability(supabase, payload);
+
+        if (isLoggedIn && availability.loggedInRegistered) {
+          localStorage.setItem(LAST_REGISTRATION_EMAIL_KEY, payload.email);
+          window.location.href =
+            SUCCESS_REDIRECT_BY_MODE[FORM_MODE] || "/registration_success/";
+          return;
+        }
+
+        if (!isLoggedIn && showDuplicateRegistrationWarnings(availability)) {
+          return;
+        }
+
         paymentOrder = await createCashfreeOrder(payload);
       }
 
-      await saveRegistration({
-        ...payload,
-        ...(paymentOrder
-          ? {
-              payment_status: "pending",
-              cashfree_order_id: paymentOrder.orderId,
-              cashfree_payment_session_id: paymentOrder.paymentSessionId,
-            }
-          : {}),
-      });
+      try {
+        await saveRegistration({
+          ...payload,
+          ...(paymentOrder
+            ? {
+                payment_status: "pending",
+                cashfree_order_id: paymentOrder.orderId,
+                cashfree_payment_session_id: paymentOrder.paymentSessionId,
+              }
+            : {}),
+        });
+      } catch (saveError) {
+        if (
+          FORM_MODE !== "registration" ||
+          !paymentOrder ||
+          !isDuplicateRegistrationError(saveError)
+        ) {
+          throw saveError;
+        }
+
+        console.warn(
+          "Registration already exists for this email.",
+          saveError
+        );
+        setFieldError("email", "Gmail ID already registered");
+        return;
+      }
       localStorage.setItem(LAST_REGISTRATION_EMAIL_KEY, payload.email);
       if (FORM_MODE === "registration") {
         await openCashfreeCheckout(paymentOrder.paymentSessionId);

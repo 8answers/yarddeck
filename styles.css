@@ -964,6 +964,12 @@ img {
   border-color: var(--yellow);
 }
 
+.field[data-invalid="true"] .input-with-icon,
+.field[data-invalid="true"] .phone-input,
+.field[data-invalid="true"] > input {
+  border-color: var(--danger);
+}
+
 .input-with-icon,
 .phone-input {
   display: flex;
@@ -987,6 +993,17 @@ img {
 .phone-input > span {
   padding-left: 16px;
   font-size: 24px;
+}
+
+.field-warning {
+  margin-top: -8px;
+  color: var(--danger);
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.field-warning[hidden] {
+  display: none;
 }
 
 .skill-options {
@@ -1179,6 +1196,19 @@ img {
 .payment-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.form-status {
+  width: 100%;
+  margin: -24px 0 0;
+  color: var(--danger);
+  font-size: 18px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.form-status[hidden] {
+  display: none;
 }
 
 .success-page {

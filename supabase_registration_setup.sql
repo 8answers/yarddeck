@@ -110,8 +110,55 @@ as $$
   where tr.tournament_slug = p_tournament_slug;
 $$;
 
+create or replace function public.check_tournament_registration_availability(
+  p_tournament_slug text,
+  p_email text,
+  p_phone_country_code text,
+  p_phone_number text
+)
+returns table (
+  email_registered boolean,
+  phone_registered boolean,
+  logged_in_registered boolean
+)
+language sql
+security definer
+set search_path = public
+as $$
+  with input_values as (
+    select
+      public.normalize_registration_email(p_email) as normalized_email,
+      coalesce(nullif(trim(p_phone_country_code), ''), '+91') as normalized_country_code,
+      regexp_replace(coalesce(p_phone_number, ''), '\D', '', 'g') as normalized_phone,
+      public.normalize_registration_email((select auth.jwt() ->> 'email')) as logged_in_email
+  )
+  select
+    exists (
+      select 1
+      from public.tournament_registrations tr, input_values iv
+      where tr.tournament_slug = p_tournament_slug
+        and public.normalize_registration_email(tr.email) = iv.normalized_email
+    ) as email_registered,
+    exists (
+      select 1
+      from public.tournament_registrations tr, input_values iv
+      where tr.tournament_slug = p_tournament_slug
+        and tr.phone_country_code = iv.normalized_country_code
+        and regexp_replace(coalesce(tr.phone_number, ''), '\D', '', 'g') = iv.normalized_phone
+    ) as phone_registered,
+    exists (
+      select 1
+      from public.tournament_registrations tr, input_values iv
+      where tr.tournament_slug = p_tournament_slug
+        and iv.logged_in_email <> ''
+        and public.normalize_registration_email(tr.email) = iv.logged_in_email
+    ) as logged_in_registered
+  from input_values;
+$$;
+
 grant execute on function public.has_registered_for_tournament(text) to authenticated;
 grant execute on function public.get_tournament_registration_count(text) to anon, authenticated;
+grant execute on function public.check_tournament_registration_availability(text, text, text, text) to anon, authenticated;
 
 drop policy if exists "Public can insert registrations" on public.tournament_registrations;
 create policy "Public can insert registrations"
