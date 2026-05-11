@@ -17,6 +17,7 @@ const LAST_REGISTRATION_EMAIL_KEY = "yarddeck_last_registration_email";
 const TEST_REGISTRATION_LIMIT = 6;
 const REGISTRATION_COUNT_RPC = "get_tournament_registration_count";
 const REGISTRATION_AVAILABILITY_RPC = "check_tournament_registration_availability";
+const WAITLIST_EMAIL_EXISTS_RPC = "check_tournament_notify_email_exists";
 const CASHFREE_ORDER_FUNCTION_URL = "/.netlify/functions/create-cashfree-order";
 const CASHFREE_MODE = "sandbox";
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
@@ -24,6 +25,7 @@ const OTP_SEND_LIMIT = 3;
 const OTP_SEND_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const OTP_SEND_HISTORY_KEY = "yarddeck_otp_send_history_v3";
 const OTP_BUTTON_TEXT = "Get OTP";
+const EMAIL_DUPLICATE_CHECK_DEBOUNCE_MS = 350;
 
 const FORM_MODE = String(form?.dataset.mode || "registration").toLowerCase();
 const SUCCESS_REDIRECT_BY_MODE = {
@@ -38,6 +40,8 @@ const TABLE_BY_MODE = {
 let isSubmitting = false;
 let isSendingOtp = false;
 let isVerifyingOtp = false;
+let isCheckingEmailDuplicate = false;
+let isEmailAlreadyRegistered = false;
 let isEmailVerified = false;
 let hasAuthSession = false;
 let otpSentForEmail = "";
@@ -45,6 +49,8 @@ let verifiedEmail = "";
 let otpCooldownRemaining = 0;
 let otpCooldownTimer = null;
 let otpLimitTimer = null;
+let emailDuplicateDebounceTimer = null;
+let emailDuplicateCheckRequestId = 0;
 let supabaseClientPromise = null;
 
 function normalizeEmailForMatch(rawEmail) {
@@ -84,6 +90,8 @@ function updatePaymentState() {
   const requiresOtp = FORM_MODE === "registration" && otpInputs.length > 0;
   paymentButton.disabled =
     isSubmitting ||
+    isCheckingEmailDuplicate ||
+    isEmailAlreadyRegistered ||
     !form.checkValidity() ||
     (requiresOtp && !isEmailVerified && !hasAuthSession);
 
@@ -92,6 +100,8 @@ function updatePaymentState() {
       isSubmitting ||
       isSendingOtp ||
       isVerifyingOtp ||
+      isCheckingEmailDuplicate ||
+      isEmailAlreadyRegistered ||
       isEmailVerified ||
       otpCooldownRemaining > 0 ||
       Boolean(otpLimitTimer) ||
@@ -132,6 +142,24 @@ function clearFieldErrors() {
   setFieldError("email", "");
   setFieldError("phone", "");
   setFormStatus("");
+}
+
+function setEmailDuplicateState(isDuplicate) {
+  isEmailAlreadyRegistered = Boolean(isDuplicate);
+  if (isEmailAlreadyRegistered) {
+    setFieldError("email", "Email is already registered.");
+    if (FORM_MODE === "registration") {
+      setOtpStatus("Email is already registered.");
+    }
+  } else {
+    setFieldError("email", "");
+    if (FORM_MODE === "registration") {
+      const currentOtpStatus = String(otpStatus?.textContent || "").toLowerCase();
+      if (currentOtpStatus === "email is already registered.") {
+        setOtpStatus("");
+      }
+    }
+  }
 }
 
 function setOtpStatus(message, type = "error") {
@@ -308,15 +336,7 @@ function startOtpLimitTimer(email) {
 }
 
 function shouldTreatWaitlistErrorAsSuccess(error) {
-  if (!error || FORM_MODE !== "waitlist") return false;
-
-  const message = String(error.message || "").toLowerCase();
-
-  // Duplicate notify submissions are treated as success.
-  return (
-    String(error.code || "") === "23505" || // unique violation
-    message.includes("duplicate key")
-  );
+  return false;
 }
 
 function loadSupabaseLibrary() {
@@ -457,18 +477,103 @@ async function checkRegistrationAvailability(supabase, payload) {
 
   const result = Array.isArray(data) ? data[0] : data;
   return {
-    emailRegistered: false,
+    emailRegistered: Boolean(result?.email_registered),
     phoneRegistered: Boolean(result?.phone_registered),
     loggedInRegistered: Boolean(result?.logged_in_registered),
   };
 }
 
 function showDuplicateRegistrationWarnings(availability) {
+  if (availability.emailRegistered) {
+    setFieldError("email", "Email is already registered.");
+  }
+
   if (availability.phoneRegistered) {
     setFieldError("phone", "Phone number already registered");
   }
 
-  return availability.phoneRegistered;
+  return availability.emailRegistered || availability.phoneRegistered;
+}
+
+async function checkNotifyEmailExists(supabase, email) {
+  const { data, error } = await supabase.rpc(WAITLIST_EMAIL_EXISTS_RPC, {
+    p_tournament_slug: TOURNAMENT_SLUG,
+    p_email: email,
+  });
+
+  if (error) throw error;
+  return Boolean(data);
+}
+
+async function checkDuplicateEmailByMode(supabase, email) {
+  if (!email) return false;
+
+  if (FORM_MODE === "waitlist") {
+    return checkNotifyEmailExists(supabase, email);
+  }
+
+  const availability = await checkRegistrationAvailability(supabase, {
+    tournament_slug: TOURNAMENT_SLUG,
+    email,
+    phone_country_code: "+91",
+    phone_number: "",
+  });
+
+  return Boolean(availability.emailRegistered);
+}
+
+async function refreshEmailDuplicateState() {
+  if (!emailInput) return false;
+
+  const normalizedEmail = normalizeEmailForMatch(emailInput.value || "");
+  if (!normalizedEmail || !emailInput.checkValidity()) {
+    isCheckingEmailDuplicate = false;
+    setEmailDuplicateState(false);
+    updatePaymentState();
+    return false;
+  }
+
+  const requestId = ++emailDuplicateCheckRequestId;
+  isCheckingEmailDuplicate = true;
+  updatePaymentState();
+
+  try {
+    const supabase = await getSupabaseClient();
+    const duplicate = await checkDuplicateEmailByMode(supabase, normalizedEmail);
+    if (requestId !== emailDuplicateCheckRequestId) return false;
+    setEmailDuplicateState(duplicate);
+    return duplicate;
+  } catch (error) {
+    console.warn("Unable to check duplicate email:", error.message || error);
+    if (requestId !== emailDuplicateCheckRequestId) return false;
+    setEmailDuplicateState(false);
+    return false;
+  } finally {
+    if (requestId === emailDuplicateCheckRequestId) {
+      isCheckingEmailDuplicate = false;
+      updatePaymentState();
+    }
+  }
+}
+
+function scheduleEmailDuplicateStateRefresh() {
+  if (emailDuplicateDebounceTimer) {
+    clearTimeout(emailDuplicateDebounceTimer);
+  }
+
+  const normalizedEmail = normalizeEmailForMatch(emailInput?.value || "");
+  if (normalizedEmail && emailInput?.checkValidity()) {
+    isCheckingEmailDuplicate = true;
+    updatePaymentState();
+  } else {
+    isCheckingEmailDuplicate = false;
+    setEmailDuplicateState(false);
+    updatePaymentState();
+  }
+
+  emailDuplicateDebounceTimer = setTimeout(() => {
+    refreshEmailDuplicateState();
+  }, EMAIL_DUPLICATE_CHECK_DEBOUNCE_MS);
 }
 
 async function sendEmailOtp() {
@@ -479,6 +584,12 @@ async function sendEmailOtp() {
 
   if (!emailInput.checkValidity()) {
     emailInput.reportValidity();
+    updatePaymentState();
+    return;
+  }
+
+  const emailAlreadyExists = await refreshEmailDuplicateState();
+  if (emailAlreadyExists) {
     updatePaymentState();
     return;
   }
@@ -660,7 +771,14 @@ if (form && paymentButton) {
     clearFieldErrors();
     updatePaymentState();
   });
-  emailInput?.addEventListener("input", resetOtpState);
+  emailInput?.addEventListener("input", () => {
+    resetOtpState();
+    isEmailAlreadyRegistered = false;
+    scheduleEmailDuplicateStateRefresh();
+  });
+  emailInput?.addEventListener("blur", () => {
+    refreshEmailDuplicateState();
+  });
   sendOtpButton?.addEventListener("click", sendEmailOtp);
   otpInputs.forEach((input, index) => {
     input.addEventListener("input", () => {
@@ -736,6 +854,16 @@ if (form && paymentButton) {
         }
 
         paymentOrder = await createCashfreeOrder(payload);
+      } else if (FORM_MODE === "waitlist") {
+        const duplicateWaitlistEmail = await checkNotifyEmailExists(
+          supabase,
+          payload.email
+        );
+        if (duplicateWaitlistEmail) {
+          setEmailDuplicateState(true);
+          setFormStatus("Email is already registered.");
+          return;
+        }
       }
 
       try {
@@ -762,7 +890,8 @@ if (form && paymentButton) {
           "Registration already exists for this email.",
           saveError
         );
-        setFormStatus("Registration already exists for this phone number.");
+        setFormStatus("Email is already registered.");
+        setFieldError("email", "Email is already registered.");
         return;
       }
       localStorage.setItem(LAST_REGISTRATION_EMAIL_KEY, payload.email);
@@ -780,15 +909,22 @@ if (form && paymentButton) {
       }
       if (FORM_MODE === "waitlist") {
         const code = String(error?.code || "");
-        if (code === "42P01") {
+        if (isDuplicateRegistrationError(error)) {
+          setEmailDuplicateState(true);
+          setFormStatus("Email is already registered.");
+          return;
+        }
+        if (code === "42P01" || code === "PGRST205") {
           setFormStatus("Notify table is not set up yet. Please run the latest database SQL setup.");
           return;
         }
-        if (code === "42501") {
+        if (code === "42501" || code === "PGRST301" || code === "PGRST302") {
           setFormStatus("Notify insert permission is missing in database policies. Please run the latest SQL setup.");
           return;
         }
-        setFormStatus("Could not save your notify request right now. Please try again.");
+        setFormStatus(
+          `Could not save your notify request right now. Please try again. (${code || "unknown"})`
+        );
         return;
       }
       window.location.href = "/registration_failed/";
@@ -799,5 +935,8 @@ if (form && paymentButton) {
   });
 
   syncOtpStateWithSession();
+  if (emailInput?.value) {
+    scheduleEmailDuplicateStateRefresh();
+  }
   updatePaymentState();
 }

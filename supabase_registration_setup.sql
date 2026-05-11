@@ -74,6 +74,10 @@ alter table public.tournament_registrations enable row level security;
 alter table public.tournament_waitlist enable row level security;
 alter table public.tournament_notify_emails enable row level security;
 
+grant usage on schema public to anon, authenticated;
+grant insert, select on table public.tournament_notify_emails to anon, authenticated;
+grant usage, select on sequence public.tournament_notify_emails_id_seq to anon, authenticated;
+
 create or replace function public.normalize_registration_email(raw_email text)
 returns text
 language sql
@@ -173,9 +177,28 @@ as $$
   from input_values;
 $$;
 
+create or replace function public.check_tournament_notify_email_exists(
+  p_tournament_slug text,
+  p_email text
+)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.tournament_notify_emails tne
+    where tne.tournament_slug = p_tournament_slug
+      and public.normalize_registration_email(tne.email) =
+        public.normalize_registration_email(p_email)
+  );
+$$;
+
 grant execute on function public.has_registered_for_tournament(text) to authenticated;
 grant execute on function public.get_tournament_registration_count(text) to anon, authenticated;
 grant execute on function public.check_tournament_registration_availability(text, text, text, text) to anon, authenticated;
+grant execute on function public.check_tournament_notify_email_exists(text, text) to anon, authenticated;
 
 drop policy if exists "Public can insert registrations" on public.tournament_registrations;
 create policy "Public can insert registrations"
