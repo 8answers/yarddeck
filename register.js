@@ -22,7 +22,7 @@ const CASHFREE_MODE = "sandbox";
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
 const OTP_SEND_LIMIT = 3;
 const OTP_SEND_LIMIT_WINDOW_MS = 60 * 60 * 1000;
-const OTP_SEND_HISTORY_KEY = "yarddeck_otp_send_history";
+const OTP_SEND_HISTORY_KEY = "yarddeck_otp_send_history_v2";
 const OTP_BUTTON_TEXT = "Get OTP";
 
 const FORM_MODE = String(form?.dataset.mode || "registration").toLowerCase();
