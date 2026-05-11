@@ -1188,6 +1188,7 @@ img {
   height: 20px;
   margin-left: 2px;
   flex: 0 0 auto;
+  --fill-0: var(--white);
 }
 
 .registration-form[data-mode="waitlist"] .payment-button img {
