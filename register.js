@@ -19,6 +19,8 @@ const REGISTRATION_COUNT_RPC = "get_tournament_registration_count";
 const REGISTRATION_AVAILABILITY_RPC = "check_tournament_registration_availability";
 const CASHFREE_ORDER_FUNCTION_URL = "/.netlify/functions/create-cashfree-order";
 const CASHFREE_MODE = "sandbox";
+const OTP_RESEND_COOLDOWN_SECONDS = 60;
+const OTP_BUTTON_TEXT = "Get OTP";
 
 const FORM_MODE = String(form?.dataset.mode || "registration").toLowerCase();
 const SUCCESS_REDIRECT_BY_MODE = {
@@ -36,6 +38,8 @@ let isVerifyingOtp = false;
 let isEmailVerified = false;
 let hasAuthSession = false;
 let otpSentForEmail = "";
+let otpCooldownRemaining = 0;
+let otpCooldownTimer = null;
 let supabaseClientPromise = null;
 
 function normalizeEmailForMatch(rawEmail) {
@@ -84,6 +88,7 @@ function updatePaymentState() {
       isSendingOtp ||
       isVerifyingOtp ||
       isEmailVerified ||
+      otpCooldownRemaining > 0 ||
       !emailInput.checkValidity();
   }
 }
@@ -136,6 +141,36 @@ function resetOtpState() {
   });
   setOtpStatus("");
   updatePaymentState();
+}
+
+function updateOtpButtonText() {
+  if (!sendOtpButton) return;
+
+  sendOtpButton.textContent =
+    otpCooldownRemaining > 0
+      ? `${OTP_BUTTON_TEXT} (${otpCooldownRemaining}s)`
+      : OTP_BUTTON_TEXT;
+}
+
+function startOtpCooldown(seconds = OTP_RESEND_COOLDOWN_SECONDS) {
+  otpCooldownRemaining = seconds;
+  updateOtpButtonText();
+  updatePaymentState();
+
+  if (otpCooldownTimer) {
+    clearInterval(otpCooldownTimer);
+  }
+
+  otpCooldownTimer = setInterval(() => {
+    otpCooldownRemaining = Math.max(otpCooldownRemaining - 1, 0);
+    updateOtpButtonText();
+    updatePaymentState();
+
+    if (otpCooldownRemaining === 0 && otpCooldownTimer) {
+      clearInterval(otpCooldownTimer);
+      otpCooldownTimer = null;
+    }
+  }, 1000);
 }
 
 function shouldTreatWaitlistErrorAsSuccess(error) {
@@ -358,10 +393,12 @@ async function sendEmailOtp() {
     if (error) throw error;
 
     otpSentForEmail = email;
+    startOtpCooldown();
     setOtpStatus("OTP sent to your Gmail", "success");
     otpInputs[0]?.focus();
   } catch (error) {
     console.error("Failed to send OTP:", error);
+    startOtpCooldown();
     setOtpStatus("Please wait a minute before requesting another OTP.");
   } finally {
     isSendingOtp = false;
