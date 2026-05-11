@@ -41,6 +41,7 @@ let isVerifyingOtp = false;
 let isEmailVerified = false;
 let hasAuthSession = false;
 let otpSentForEmail = "";
+let verifiedEmail = "";
 let otpCooldownRemaining = 0;
 let otpCooldownTimer = null;
 let otpLimitTimer = null;
@@ -120,6 +121,13 @@ function setFieldError(fieldName, message) {
   }
 }
 
+function setEmailVerifiedState(isVerified) {
+  const emailField = form?.querySelector('[data-field="email"]');
+  if (emailField) {
+    emailField.dataset.verified = isVerified ? "true" : "false";
+  }
+}
+
 function clearFieldErrors() {
   setFieldError("email", "");
   setFieldError("phone", "");
@@ -144,8 +152,16 @@ function clearOtpInputStatus() {
 }
 
 function resetOtpState() {
+  const currentEmail = normalizeEmailForMatch(emailInput?.value || "");
+  if (isEmailVerified && currentEmail === verifiedEmail) {
+    updatePaymentState();
+    return;
+  }
+
   isEmailVerified = false;
   otpSentForEmail = "";
+  verifiedEmail = "";
+  setEmailVerifiedState(false);
   otpCooldownRemaining = 0;
   if (otpCooldownTimer) {
     clearInterval(otpCooldownTimer);
@@ -419,6 +435,8 @@ async function syncOtpStateWithSession() {
     hasAuthSession = Boolean(session);
     if (hasAuthSession) {
       isEmailVerified = true;
+      verifiedEmail = normalizeEmailForMatch(session?.user?.email || "");
+      setEmailVerifiedState(true);
       setOtpStatus("Email already verified", "success");
       otpInputs.forEach((input) => {
         input.disabled = true;
@@ -482,6 +500,8 @@ async function sendEmailOtp() {
 
   if (session) {
     isEmailVerified = true;
+    verifiedEmail = normalizeEmailForMatch(session?.user?.email || email);
+    setEmailVerifiedState(true);
     setOtpStatus("Email already verified", "success");
     updatePaymentState();
     return;
@@ -546,6 +566,8 @@ async function verifyEmailOtp() {
     if (error) throw error;
 
     isEmailVerified = true;
+    verifiedEmail = otpSentForEmail;
+    setEmailVerifiedState(true);
     otpInputs.forEach((input) => {
       input.disabled = true;
     });

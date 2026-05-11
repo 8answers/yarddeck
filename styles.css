@@ -981,6 +981,21 @@ img {
   align-items: center;
 }
 
+.input-with-icon {
+  position: relative;
+}
+
+.field[data-verified="true"] .input-with-icon::after {
+  content: "";
+  width: 18px;
+  height: 10px;
+  margin-right: 22px;
+  flex: 0 0 auto;
+  border: solid var(--green);
+  border-width: 0 0 3px 3px;
+  transform: rotate(-45deg);
+}
+
 .input-with-icon input,
 .phone-input input {
   min-height: 61px;
