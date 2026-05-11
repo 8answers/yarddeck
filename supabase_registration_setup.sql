@@ -195,7 +195,7 @@ drop policy if exists "Public can insert notify emails" on public.tournament_not
 create policy "Public can insert notify emails"
   on public.tournament_notify_emails
   for insert
-  to anon
+  to anon, authenticated
   with check (terms_accepted = true);
 
 drop policy if exists "Authenticated users can view own registrations" on public.tournament_registrations;

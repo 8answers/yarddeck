@@ -310,15 +310,11 @@ function startOtpLimitTimer(email) {
 function shouldTreatWaitlistErrorAsSuccess(error) {
   if (!error || FORM_MODE !== "waitlist") return false;
 
-  const code = String(error.code || "");
   const message = String(error.message || "").toLowerCase();
 
-  // For waitlist UX: if row already exists, or waitlist table/RLS is not yet deployed,
-  // still show confirmation screen instead of a hard failure page.
+  // Duplicate notify submissions are treated as success.
   return (
-    code === "23505" || // unique violation (already in waitlist)
-    code === "42P01" || // waitlist table missing
-    code === "42501" || // policy/permission gap
+    String(error.code || "") === "23505" || // unique violation
     message.includes("duplicate key")
   );
 }
@@ -782,8 +778,20 @@ if (form && paymentButton) {
         window.location.href = "/waitlist_confirmed/";
         return;
       }
-      window.location.href =
-        FORM_MODE === "waitlist" ? "/waitlist_confirmed/" : "/registration_failed/";
+      if (FORM_MODE === "waitlist") {
+        const code = String(error?.code || "");
+        if (code === "42P01") {
+          setFormStatus("Notify table is not set up yet. Please run the latest database SQL setup.");
+          return;
+        }
+        if (code === "42501") {
+          setFormStatus("Notify insert permission is missing in database policies. Please run the latest SQL setup.");
+          return;
+        }
+        setFormStatus("Could not save your notify request right now. Please try again.");
+        return;
+      }
+      window.location.href = "/registration_failed/";
     } finally {
       isSubmitting = false;
       updatePaymentState();
