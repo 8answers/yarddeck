@@ -1,6 +1,11 @@
 const form = document.querySelector(".registration-form");
 const paymentButton = document.querySelector(".payment-button");
 const formStatus = document.querySelector("[data-form-status]");
+const emailInput = form?.querySelector('input[name="email"]');
+const sendOtpButton = document.querySelector("[data-send-otp]");
+const otpInputs = Array.from(document.querySelectorAll("[data-otp-input]"));
+const otpStatus = document.querySelector("[data-otp-status]");
+const otpInputGroup = document.querySelector(".otp-inputs");
 const SUPABASE_URL = "https://hkdeqyyzuajjzjcmfgzx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable__EFfpHtvXJR3zGb5KWs6eg_-j1F6fEf";
 const SUPABASE_CDN_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
@@ -26,6 +31,11 @@ const TABLE_BY_MODE = {
 };
 
 let isSubmitting = false;
+let isSendingOtp = false;
+let isVerifyingOtp = false;
+let isEmailVerified = false;
+let hasAuthSession = false;
+let otpSentForEmail = "";
 let supabaseClientPromise = null;
 
 function normalizeEmailForMatch(rawEmail) {
@@ -62,7 +72,20 @@ function coerceCountValue(value) {
 
 function updatePaymentState() {
   if (!form || !paymentButton) return;
-  paymentButton.disabled = isSubmitting || !form.checkValidity();
+  const requiresOtp = FORM_MODE === "registration" && otpInputs.length > 0;
+  paymentButton.disabled =
+    isSubmitting ||
+    !form.checkValidity() ||
+    (requiresOtp && !isEmailVerified && !hasAuthSession);
+
+  if (sendOtpButton && emailInput) {
+    sendOtpButton.disabled =
+      isSubmitting ||
+      isSendingOtp ||
+      isVerifyingOtp ||
+      isEmailVerified ||
+      !emailInput.checkValidity();
+  }
 }
 
 function setFormStatus(message, type = "error") {
@@ -91,6 +114,28 @@ function clearFieldErrors() {
   setFieldError("email", "");
   setFieldError("phone", "");
   setFormStatus("");
+}
+
+function setOtpStatus(message, type = "error") {
+  if (!otpStatus) return;
+
+  otpStatus.textContent = message;
+  otpStatus.dataset.status = type;
+  otpStatus.hidden = !message;
+  if (otpInputGroup) {
+    otpInputGroup.dataset.invalid = type === "error" && message ? "true" : "false";
+  }
+}
+
+function resetOtpState() {
+  isEmailVerified = false;
+  otpSentForEmail = "";
+  otpInputs.forEach((input) => {
+    input.value = "";
+    input.disabled = false;
+  });
+  setOtpStatus("");
+  updatePaymentState();
 }
 
 function shouldTreatWaitlistErrorAsSuccess(error) {
@@ -198,6 +243,10 @@ function getFormPayload() {
   };
 }
 
+function getCurrentOtpCode() {
+  return otpInputs.map((input) => input.value.trim()).join("");
+}
+
 async function getCurrentSession(supabase) {
   const { data, error } = await supabase.auth.getSession();
   if (error) {
@@ -206,6 +255,27 @@ async function getCurrentSession(supabase) {
   }
 
   return data?.session || null;
+}
+
+async function syncOtpStateWithSession() {
+  if (FORM_MODE !== "registration" || !otpInputs.length) return;
+
+  try {
+    const supabase = await getSupabaseClient();
+    const session = await getCurrentSession(supabase);
+    hasAuthSession = Boolean(session);
+    if (hasAuthSession) {
+      isEmailVerified = true;
+      setOtpStatus("Email already verified", "success");
+      otpInputs.forEach((input) => {
+        input.disabled = true;
+      });
+    }
+  } catch (error) {
+    console.warn("Unable to initialize OTP state:", error.message || error);
+  } finally {
+    updatePaymentState();
+  }
 }
 
 async function checkRegistrationAvailability(supabase, payload) {
@@ -236,6 +306,101 @@ function showDuplicateRegistrationWarnings(availability) {
   }
 
   return availability.emailRegistered || availability.phoneRegistered;
+}
+
+async function sendEmailOtp() {
+  if (!emailInput || !sendOtpButton) return;
+
+  clearFieldErrors();
+  setOtpStatus("");
+
+  if (!emailInput.checkValidity()) {
+    emailInput.reportValidity();
+    updatePaymentState();
+    return;
+  }
+
+  const supabase = await getSupabaseClient();
+  const email = normalizeEmailForMatch(emailInput.value);
+  const session = await getCurrentSession(supabase);
+  hasAuthSession = Boolean(session);
+
+  if (session) {
+    isEmailVerified = true;
+    setOtpStatus("Email already verified", "success");
+    updatePaymentState();
+    return;
+  }
+
+  try {
+    isSendingOtp = true;
+    updatePaymentState();
+
+    const payload = {
+      tournament_slug: TOURNAMENT_SLUG,
+      email,
+      phone_country_code: "+91",
+      phone_number: "",
+    };
+    const availability = await checkRegistrationAvailability(supabase, payload);
+    if (availability.emailRegistered) {
+      setFieldError("email", "Gmail ID already registered");
+      return;
+    }
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+      },
+    });
+
+    if (error) throw error;
+
+    otpSentForEmail = email;
+    setOtpStatus("OTP sent to your Gmail", "success");
+    otpInputs[0]?.focus();
+  } catch (error) {
+    console.error("Failed to send OTP:", error);
+    setOtpStatus(error.message || "Could not send OTP. Please try again.");
+  } finally {
+    isSendingOtp = false;
+    updatePaymentState();
+  }
+}
+
+async function verifyEmailOtp() {
+  if (isVerifyingOtp || isEmailVerified || !otpSentForEmail) return;
+
+  const token = getCurrentOtpCode();
+  if (token.length !== otpInputs.length) return;
+
+  try {
+    isVerifyingOtp = true;
+    updatePaymentState();
+    setOtpStatus("");
+
+    const supabase = await getSupabaseClient();
+    const { error } = await supabase.auth.verifyOtp({
+      email: otpSentForEmail,
+      token,
+      type: "email",
+    });
+
+    if (error) throw error;
+
+    isEmailVerified = true;
+    otpInputs.forEach((input) => {
+      input.disabled = true;
+    });
+    setOtpStatus("Email verified", "success");
+  } catch (error) {
+    console.error("Failed to verify OTP:", error);
+    setOtpStatus("Invalid OTP. Please check the code and try again.");
+  } finally {
+    isVerifyingOtp = false;
+    updatePaymentState();
+  }
 }
 
 async function createCashfreeOrder(payload) {
@@ -291,6 +456,26 @@ if (form && paymentButton) {
     clearFieldErrors();
     updatePaymentState();
   });
+  emailInput?.addEventListener("input", resetOtpState);
+  sendOtpButton?.addEventListener("click", sendEmailOtp);
+  otpInputs.forEach((input, index) => {
+    input.addEventListener("input", () => {
+      input.value = input.value.replace(/\D/g, "").slice(0, 1);
+      setOtpStatus("");
+
+      if (input.value && otpInputs[index + 1]) {
+        otpInputs[index + 1].focus();
+      }
+
+      verifyEmailOtp();
+    });
+
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Backspace" && !input.value && otpInputs[index - 1]) {
+        otpInputs[index - 1].focus();
+      }
+    });
+  });
   form.addEventListener("change", updatePaymentState);
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -321,9 +506,15 @@ if (form && paymentButton) {
       const payload = getFormPayload();
       const session = await getCurrentSession(supabase);
       const isLoggedIn = Boolean(session);
+      hasAuthSession = isLoggedIn;
       let paymentOrder = null;
 
       if (FORM_MODE === "registration") {
+        if (!isLoggedIn && otpInputs.length > 0 && !isEmailVerified) {
+          setOtpStatus("Please verify your Gmail before payment.");
+          return;
+        }
+
         const availability = await checkRegistrationAvailability(supabase, payload);
 
         if (isLoggedIn && availability.loggedInRegistered) {
@@ -388,5 +579,6 @@ if (form && paymentButton) {
     }
   });
 
+  syncOtpStateWithSession();
   updatePaymentState();
 }

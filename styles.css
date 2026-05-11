@@ -1011,6 +1011,93 @@ img {
   display: none;
 }
 
+.email-otp {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  margin-top: -24px;
+}
+
+.otp-button {
+  display: inline-flex;
+  width: 190px;
+  height: 50px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border: 1px solid var(--black);
+  border-radius: 32px;
+  background: var(--white);
+  color: var(--black);
+  font: inherit;
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.otp-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.otp-instruction,
+.otp-status {
+  width: 100%;
+  margin: 0;
+  color: var(--white);
+  font-size: 24px;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.otp-status {
+  margin-top: -8px;
+  font-size: 16px;
+}
+
+.otp-status[data-status="error"] {
+  color: var(--danger);
+}
+
+.otp-status[data-status="success"] {
+  color: var(--yellow);
+}
+
+.otp-status[hidden] {
+  display: none;
+}
+
+.otp-inputs {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
+}
+
+.otp-inputs input {
+  width: 55px;
+  height: 63px;
+  padding: 0;
+  border: 1px solid var(--white);
+  border-radius: 16px;
+  background: var(--black);
+  color: var(--white);
+  font: inherit;
+  font-size: 24px;
+  text-align: center;
+  outline: none;
+}
+
+.otp-inputs input:focus {
+  border-color: var(--yellow);
+}
+
+.otp-inputs[data-invalid="true"] input {
+  border-color: var(--danger);
+}
+
 .skill-options {
   display: flex;
   justify-content: space-between;
@@ -1745,6 +1832,7 @@ img {
   .field input,
   .phone-input,
   .phone-input > span,
+  .otp-instruction,
   .consent-field,
   .payment-button,
   .success-message p,
@@ -1766,6 +1854,21 @@ img {
 
   .registration-form {
     gap: 36px;
+  }
+
+  .email-otp {
+    gap: 18px;
+  }
+
+  .otp-inputs {
+    gap: 8px;
+  }
+
+  .otp-inputs input {
+    width: 42px;
+    height: 54px;
+    border-radius: 14px;
+    font-size: 20px;
   }
 
   .skill-options span {

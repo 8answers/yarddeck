@@ -116,6 +116,22 @@
             <span class="field-warning" data-field-error="email" hidden></span>
           </label>
 
+          <div class="email-otp" data-email-otp>
+            <button class="otp-button" type="button" data-send-otp disabled>Get OTP</button>
+            <p class="otp-instruction">
+              Please enter the 6-digit verification code sent to the above email address.
+            </p>
+            <div class="otp-inputs" aria-label="Email verification code">
+              <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1" data-otp-input aria-label="OTP digit 1">
+              <input type="text" inputmode="numeric" maxlength="1" data-otp-input aria-label="OTP digit 2">
+              <input type="text" inputmode="numeric" maxlength="1" data-otp-input aria-label="OTP digit 3">
+              <input type="text" inputmode="numeric" maxlength="1" data-otp-input aria-label="OTP digit 4">
+              <input type="text" inputmode="numeric" maxlength="1" data-otp-input aria-label="OTP digit 5">
+              <input type="text" inputmode="numeric" maxlength="1" data-otp-input aria-label="OTP digit 6">
+            </div>
+            <p class="otp-status" data-otp-status hidden></p>
+          </div>
+
           <label class="field" data-field="phone">
             <span>WhatsApp Phone Number *</span>
             <span class="phone-input">
