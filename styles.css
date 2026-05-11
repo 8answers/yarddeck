@@ -1183,6 +1183,13 @@ img {
   vertical-align: middle;
 }
 
+.cashfree-button-arrow {
+  width: 20px;
+  height: 20px;
+  margin-left: 2px;
+  flex: 0 0 auto;
+}
+
 .registration-form[data-mode="waitlist"] .payment-button img {
   width: 25px;
   height: 27px;
