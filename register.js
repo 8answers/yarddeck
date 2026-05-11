@@ -570,13 +570,25 @@ async function verifyEmailOtp() {
     setOtpStatus("");
 
     const supabase = await getSupabaseClient();
-    const { error } = await supabase.auth.verifyOtp({
-      email: otpSentForEmail,
-      token,
-      type: "email",
-    });
+    const verificationTypes = ["email", "signup", "magiclink"];
+    let verifyError = null;
 
-    if (error) throw error;
+    for (const type of verificationTypes) {
+      const { error } = await supabase.auth.verifyOtp({
+        email: otpSentForEmail,
+        token,
+        type,
+      });
+
+      if (!error) {
+        verifyError = null;
+        break;
+      }
+
+      verifyError = error;
+    }
+
+    if (verifyError) throw verifyError;
 
     isEmailVerified = true;
     verifiedEmail = otpSentForEmail;
@@ -587,7 +599,12 @@ async function verifyEmailOtp() {
     setOtpStatus("Email verified", "success");
   } catch (error) {
     console.error("Failed to verify OTP:", error);
-    setOtpStatus("Invalid OTP. Please check the code and try again.");
+    const message = String(error?.message || "").toLowerCase();
+    if (message.includes("expired")) {
+      setOtpStatus("OTP expired. Please request a new code.");
+    } else {
+      setOtpStatus("Invalid OTP. Please check the latest code and try again.");
+    }
   } finally {
     isVerifyingOtp = false;
     updatePaymentState();
