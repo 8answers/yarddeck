@@ -137,6 +137,12 @@ function setOtpStatus(message, type = "error") {
   }
 }
 
+function clearOtpInputStatus() {
+  if (otpInputGroup) {
+    otpInputGroup.dataset.status = "";
+  }
+}
+
 function resetOtpState() {
   isEmailVerified = false;
   otpSentForEmail = "";
@@ -598,7 +604,10 @@ if (form && paymentButton) {
   otpInputs.forEach((input, index) => {
     input.addEventListener("input", () => {
       input.value = input.value.replace(/\D/g, "").slice(0, 1);
-      setOtpStatus("");
+      clearOtpInputStatus();
+      if (getCurrentOtpCode().length < otpInputs.length) {
+        setOtpStatus("");
+      }
 
       if (input.value && otpInputs[index + 1]) {
         otpInputs[index + 1].focus();
