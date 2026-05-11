@@ -511,13 +511,6 @@ async function sendEmailOtp() {
     isSendingOtp = true;
     updatePaymentState();
 
-    const payload = {
-      tournament_slug: TOURNAMENT_SLUG,
-      email,
-      phone_country_code: "+91",
-      phone_number: "",
-    };
-    const availability = await checkRegistrationAvailability(supabase, payload);
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -534,10 +527,30 @@ async function sendEmailOtp() {
     otpInputs[0]?.focus();
   } catch (error) {
     console.error("Failed to send OTP:", error);
-    if (getRecentOtpSendTimes(email).length >= OTP_SEND_LIMIT) {
+    const status = Number(error?.status || error?.statusCode || 0);
+    const code = String(error?.code || "").toLowerCase();
+    const message = String(error?.message || "").toLowerCase();
+
+    if (
+      status === 429 ||
+      code.includes("rate") ||
+      message.includes("rate limit")
+    ) {
       startOtpLimitTimer(email);
+      setOtpStatus("Too many OTP requests. Please wait before trying again.");
+    } else if (
+      code === "email_address_not_authorized" ||
+      message.includes("not authorized")
+    ) {
+      setOtpStatus("Email provider is not fully configured yet. Please try again shortly.");
+    } else if (
+      message.includes("smtp") ||
+      message.includes("confirmation email") ||
+      message.includes("send")
+    ) {
+      setOtpStatus("OTP could not be sent right now. Please try again in a minute.");
     } else {
-      startOtpCooldown();
+      setOtpStatus("Unable to send OTP right now. Please try again.");
     }
   } finally {
     isSendingOtp = false;
