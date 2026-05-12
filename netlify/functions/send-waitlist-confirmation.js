@@ -3,7 +3,7 @@ const nodemailer = require("nodemailer");
 const DEFAULT_FROM_EMAIL = "contact@yarddeck.in";
 const DEFAULT_FROM_NAME = "Yard Deck";
 const DEFAULT_TOURNAMENT_NAME = "The Yard Knockout";
-const DEFAULT_SUPABASE_URL = "https://hkdeqyyzuajjzjcmfgzx.supabase.co";
+const DEFAULT_SUPABASE = "https://hkdeqyyzuajjzjcmfgzx.supabase.co";
 const DEFAULT_SITE_URL = "https://yarddeck.in";
 const EMAIL_LOGO_PATH = "/assets/Email_logo.png";
 
@@ -53,7 +53,9 @@ function normalizeWaitlistEntryId(rawValue) {
 }
 
 function getSupabaseAdminConfig() {
-  const url = cleanText(process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL);
+  const url = cleanText(
+    process.env.SUPABASE || process.env.SUPABASE_URL || DEFAULT_SUPABASE
+  );
   const serviceRoleKey = cleanText(process.env.SUPABASE_SERVICE_ROLE_KEY);
   if (!url || !serviceRoleKey) return null;
   return { url, serviceRoleKey };

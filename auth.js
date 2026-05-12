@@ -1,5 +1,5 @@
 const AUTH_KEY = "yarddeck_logged_in";
-const SUPABASE_URL = "https://hkdeqyyzuajjzjcmfgzx.supabase.co";
+const SUPABASE = "https://hkdeqyyzuajjzjcmfgzx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable__EFfpHtvXJR3zGb5KWs6eg_-j1F6fEf";
 const SUPABASE_CDN_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 const REGISTRATIONS_TABLE = "tournament_registrations";
@@ -220,7 +220,7 @@ function loadSupabaseLibrary() {
 async function createSupabaseClient() {
   try {
     await loadSupabaseLibrary();
-    return window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    return window.supabase.createClient(SUPABASE, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,

@@ -6,7 +6,7 @@ const sendOtpButton = document.querySelector("[data-send-otp]");
 const otpInputs = Array.from(document.querySelectorAll("[data-otp-input]"));
 const otpStatus = document.querySelector("[data-otp-status]");
 const otpInputGroup = document.querySelector(".otp-inputs");
-const SUPABASE_URL = "https://hkdeqyyzuajjzjcmfgzx.supabase.co";
+const SUPABASE = "https://hkdeqyyzuajjzjcmfgzx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable__EFfpHtvXJR3zGb5KWs6eg_-j1F6fEf";
 const SUPABASE_CDN_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 const REGISTRATIONS_TABLE = "tournament_registrations";
@@ -397,7 +397,7 @@ async function getSupabaseClient() {
     supabaseClientPromise = (async () => {
       await loadSupabaseLibrary();
       return window.supabase.createClient(
-        SUPABASE_URL,
+        SUPABASE,
         SUPABASE_PUBLISHABLE_KEY,
         {
           auth: {
