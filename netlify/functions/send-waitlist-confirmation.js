@@ -4,6 +4,8 @@ const DEFAULT_FROM_EMAIL = "contact@yarddeck.in";
 const DEFAULT_FROM_NAME = "Yard Deck";
 const DEFAULT_TOURNAMENT_NAME = "The Yard Knockout";
 const DEFAULT_SUPABASE_URL = "https://hkdeqyyzuajjzjcmfgzx.supabase.co";
+const DEFAULT_SITE_URL = "https://yarddeck.in";
+const EMAIL_LOGO_PATH = "/assets/Email_logo.png";
 
 function json(statusCode, body) {
   return {
@@ -17,6 +19,15 @@ function json(statusCode, body) {
 
 function cleanText(value) {
   return String(value || "").trim();
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function parseBoolean(rawValue, fallback = false) {
@@ -69,25 +80,55 @@ function buildTransportConfig() {
 }
 
 function buildMessageBody({ fullName, tournamentName }) {
-  const greetingName = cleanText(fullName) || "there";
+  const cleanedFullName = cleanText(fullName);
+  const greetingName = cleanedFullName ? cleanedFullName.split(/\s+/)[0] : "there";
   const eventName = cleanText(tournamentName) || DEFAULT_TOURNAMENT_NAME;
+  const siteUrl = cleanText(process.env.SITE_URL || process.env.URL) || DEFAULT_SITE_URL;
+  const normalizedSiteUrl = siteUrl.replace(/\/+$/, "");
+  const logoUrl = `${normalizedSiteUrl}${EMAIL_LOGO_PATH}`;
+  const safeGreetingName = escapeHtml(greetingName);
+  const safeEventName = escapeHtml(eventName);
 
   const text = [
     `Hi ${greetingName},`,
     "",
-    `Thanks for joining the waitlist for ${eventName}.`,
-    "You will be notified if registration opens again.",
+    `Thank you for showing interest in ${eventName} by Yard Deck.`,
     "",
-    "Regards,",
-    "Yard Deck Team",
+    "Your interest registration has been received successfully.",
+    "",
+    "Tournament registrations are not open yet. Once registrations officially open, we'll share:",
+    "• Tournament date & schedule",
+    "• Registration details",
+    "• Match format & rules",
+    "• Payment information",
+    "• Important event updates",
+    "",
+    "We look forward to seeing you on the court.",
+    "",
+    "Team Yard Deck",
     DEFAULT_FROM_EMAIL,
+    "yarddeck.in",
   ].join("\n");
 
   const html = `
-    <p>Hi ${greetingName},</p>
-    <p>Thanks for joining the waitlist for <strong>${eventName}</strong>.</p>
-    <p>You will be notified if registration opens again.</p>
-    <p>Regards,<br>Yard Deck Team<br>${DEFAULT_FROM_EMAIL}</p>
+    <div style="font-family: 'Nata Sans', Arial, sans-serif; color: #0f172a; line-height: 1.5;">
+      <p style="margin: 0 0 16px;">Hi ${safeGreetingName},</p>
+      <p style="margin: 0 0 16px;">Thank you for showing interest in <strong>${safeEventName}</strong> by Yard Deck.</p>
+      <p style="margin: 0 0 16px;">Your interest registration has been received successfully.</p>
+      <p style="margin: 0 0 8px;">Tournament registrations are not open yet. Once registrations officially open, we&rsquo;ll share:</p>
+      <ul style="margin: 0 0 16px; padding-left: 20px;">
+        <li>Tournament date &amp; schedule</li>
+        <li>Registration details</li>
+        <li>Match format &amp; rules</li>
+        <li>Payment information</li>
+        <li>Important event updates</li>
+      </ul>
+      <p style="margin: 0 0 16px;">We look forward to seeing you on the court.</p>
+      <p style="margin: 0 0 4px;">Team Yard Deck</p>
+      <p style="margin: 0 0 4px;"><a href="mailto:${DEFAULT_FROM_EMAIL}" style="color: inherit; text-decoration: none;">${DEFAULT_FROM_EMAIL}</a></p>
+      <p style="margin: 0 0 16px;"><a href="https://yarddeck.in" style="color: inherit; text-decoration: none;">yarddeck.in</a></p>
+      <img src="${logoUrl}" alt="Yard Deck icon" width="48" height="58" style="display:block; width:48px; height:58px;">
+    </div>
   `;
 
   return { text, html };
