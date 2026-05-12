@@ -782,9 +782,9 @@ img {
 }
 
 .primary-cta--waitlist {
-  border-color: var(--white);
-  background: var(--black);
-  color: var(--white);
+  border-color: var(--black);
+  background: var(--white);
+  color: var(--black);
 }
 
 .poster {
@@ -923,6 +923,14 @@ img {
   color: var(--white);
   font-size: 24px;
   line-height: 1.25;
+}
+
+.skill-field legend {
+  margin-bottom: 14px;
+}
+
+.required-asterisk {
+  color: var(--danger);
 }
 
 .field small,
@@ -1119,15 +1127,15 @@ img {
 }
 
 .skill-options {
-  display: flex;
-  justify-content: space-between;
-  gap: clamp(4px, 1.3vw, 12px);
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  column-gap: clamp(38px, 2.8vw, 70px);
   width: 100%;
 }
 
 .skill-options label {
-  display: block;
-  flex: 1 1 0;
+  display: flex;
+  justify-content: center;
   min-width: 0;
 }
 
@@ -1482,11 +1490,16 @@ img {
   background: var(--yellow);
 }
 
-.small-cta--waitlist:hover,
-.primary-cta--waitlist:hover {
+.small-cta--waitlist:hover {
   border-color: var(--white);
   background: #101010;
   color: var(--white);
+}
+
+.primary-cta--waitlist:hover {
+  border-color: var(--black);
+  background: var(--white);
+  color: var(--black);
 }
 
 .waitlist-message {
@@ -1677,7 +1690,7 @@ img {
   }
 
   .skill-options {
-    flex-wrap: nowrap;
+    column-gap: clamp(18px, 2.6vw, 28px);
   }
 }
 
@@ -1895,6 +1908,10 @@ img {
     min-width: 26px;
     height: 48px;
     font-size: 20px;
+  }
+
+  .skill-options {
+    column-gap: 16px;
   }
 
   .consent-field {
