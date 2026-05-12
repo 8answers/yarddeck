@@ -435,6 +435,41 @@ img {
   padding-left: 48px;
 }
 
+.rules-page {
+  display: flex;
+  justify-content: center;
+  padding: 38px 32px 96px;
+}
+
+.rules-content {
+  display: flex;
+  width: min(100%, 1422px);
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  color: var(--white);
+}
+
+.rules-content h1 {
+  margin: 0;
+  width: 100%;
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.rules-content ul {
+  margin: 0;
+  width: 100%;
+  padding-left: 36px;
+}
+
+.rules-content li {
+  font-size: 24px;
+  line-height: 1.2;
+}
+
 .site-footer {
   display: flex;
   align-items: center;
@@ -605,12 +640,12 @@ img {
   background: var(--black);
 }
 
-.event-card--waitlist {
-  border-color: var(--danger);
+[data-home-event-card] {
+  border-color: var(--yellow);
 }
 
-.event-card--waitlist [data-home-time-row] {
-  display: none;
+.event-card--waitlist {
+  border-color: var(--danger);
 }
 
 .event-logo-panel {
@@ -697,6 +732,11 @@ img {
   gap: 72px;
 }
 
+[data-home-event-card] .event-actions {
+  flex-basis: 250px;
+  gap: 24px;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -715,6 +755,22 @@ img {
 .status-pill img {
   width: 8px;
   height: 8px;
+}
+
+[data-home-status-pill] {
+  border-color: var(--yellow);
+}
+
+[data-home-status-pill] img {
+  display: none;
+}
+
+[data-home-status-pill]::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--yellow);
 }
 
 .status-pill--waitlist {
@@ -749,6 +805,10 @@ img {
   width: 186px;
   padding: 8px 16px;
   font-size: 16px;
+}
+
+[data-home-event-card] .event-actions .small-cta {
+  width: 100%;
 }
 
 .small-cta img {
@@ -849,6 +909,10 @@ img {
 .registration-event-copy > p:not(.detail-row) {
   font-size: 16px;
   line-height: 1.35;
+}
+
+.registration-event-note {
+  line-height: 1.2;
 }
 
 .inline-details {
@@ -1318,9 +1382,13 @@ img {
 }
 
 .registration-form[data-mode="waitlist"] .payment-button img {
-  width: 25px;
-  height: 27px;
+  width: 22px;
+  height: 24px;
   transform: none;
+}
+
+.registration-form[data-mode="waitlist"] .payment-button {
+  gap: 32px;
 }
 
 .registration-form:not([data-mode="waitlist"]) .payment-button--cashfree {
@@ -1526,6 +1594,18 @@ img {
   line-height: 1.25;
 }
 
+.waitlist-confirmed-section .waitlist-message {
+  padding-top: 0;
+}
+
+.waitlist-confirmed-section .help-block {
+  width: min(100%, 361px);
+}
+
+.waitlist-confirmed-section .help-block ul {
+  padding-left: 36px;
+}
+
 @media (max-width: 1200px) {
   .site-header {
     position: sticky;
@@ -1674,6 +1754,18 @@ img {
     padding-inline: 18px;
   }
 
+  .rules-page {
+    padding-inline: 18px;
+  }
+
+  .rules-content h1 {
+    font-size: 30px;
+  }
+
+  .rules-content li {
+    font-size: 22px;
+  }
+
   .event-summary {
     flex-direction: column;
   }
@@ -1729,6 +1821,26 @@ img {
 
   .policy-page {
     padding: 28px 18px 64px;
+  }
+
+  .rules-page {
+    padding: 28px 18px 64px;
+  }
+
+  .rules-content {
+    gap: 24px;
+  }
+
+  .rules-content h1 {
+    font-size: 26px;
+  }
+
+  .rules-content li {
+    font-size: 20px;
+  }
+
+  .rules-content ul {
+    padding-left: 28px;
   }
 
   .policy-content h1 {

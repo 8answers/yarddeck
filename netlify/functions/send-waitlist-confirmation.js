@@ -3,6 +3,7 @@ const nodemailer = require("nodemailer");
 const DEFAULT_FROM_EMAIL = "contact@yarddeck.in";
 const DEFAULT_FROM_NAME = "Yard Deck";
 const DEFAULT_TOURNAMENT_NAME = "The Yard Knockout";
+const DEFAULT_SUPABASE_URL = "https://hkdeqyyzuajjzjcmfgzx.supabase.co";
 
 function json(statusCode, body) {
   return {
@@ -32,6 +33,19 @@ function maskEmail(email) {
   if (!localPart || !domain) return value;
   const visible = localPart.slice(0, 2);
   return `${visible}***@${domain}`;
+}
+
+function normalizeWaitlistEntryId(rawValue) {
+  const parsed = Number(rawValue);
+  if (!Number.isInteger(parsed) || parsed <= 0) return null;
+  return parsed;
+}
+
+function getSupabaseAdminConfig() {
+  const url = cleanText(process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL);
+  const serviceRoleKey = cleanText(process.env.SUPABASE_SERVICE_ROLE_KEY);
+  if (!url || !serviceRoleKey) return null;
+  return { url, serviceRoleKey };
 }
 
 function buildTransportConfig() {
@@ -79,6 +93,51 @@ function buildMessageBody({ fullName, tournamentName }) {
   return { text, html };
 }
 
+async function updateWaitlistEmailStatus(waitlistEntryId, status, errorMessage = "") {
+  if (!waitlistEntryId) return;
+
+  const supabaseAdminConfig = getSupabaseAdminConfig();
+  if (!supabaseAdminConfig) {
+    console.warn("waitlist-email status update skipped: missing Supabase admin env");
+    return;
+  }
+
+  const nowIso = new Date().toISOString();
+  const payload = {
+    confirmation_email_status: status,
+    confirmation_email_attempted_at: nowIso,
+    confirmation_email_sent_at: status === "sent" ? nowIso : null,
+    confirmation_email_error:
+      status === "failed"
+        ? cleanText(errorMessage || "Email send failed").slice(0, 500)
+        : null,
+  };
+
+  const response = await fetch(
+    `${supabaseAdminConfig.url}/rest/v1/tournament_notify_emails?id=eq.${waitlistEntryId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: supabaseAdminConfig.serviceRoleKey,
+        Authorization: `Bearer ${supabaseAdminConfig.serviceRoleKey}`,
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.ok) {
+    const responseText = await response.text().catch(() => "");
+    console.error("waitlist-email status update failed", {
+      waitlistEntryId,
+      status,
+      responseStatus: response.status,
+      responseText,
+    });
+  }
+}
+
 exports.handler = async (event) => {
   console.info("waitlist-email invocation", {
     method: event.httpMethod,
@@ -89,20 +148,6 @@ exports.handler = async (event) => {
       method: event.httpMethod,
     });
     return json(405, { error: "Method not allowed." });
-  }
-
-  const transportConfig = buildTransportConfig();
-  if (!transportConfig) {
-    console.error("waitlist-email blocked: SMTP config missing", {
-      hasSmtpHost: Boolean(process.env.SMTP_HOST || process.env.MAIL_HOST),
-      hasSmtpPort: Boolean(process.env.SMTP_PORT || process.env.MAIL_PORT),
-      hasSmtpUser: Boolean(process.env.SMTP_USER || process.env.MAIL_USER),
-      hasSmtpPass: Boolean(process.env.SMTP_PASS || process.env.MAIL_PASS),
-    });
-    return json(500, {
-      error:
-        "SMTP is not configured. Set SMTP_* or MAIL_* environment variables.",
-    });
   }
 
   let payload;
@@ -116,9 +161,30 @@ exports.handler = async (event) => {
   const fullName = cleanText(payload.full_name);
   const email = cleanText(payload.email).toLowerCase();
   const tournamentName = cleanText(payload.tournament_name);
+  const waitlistEntryId = normalizeWaitlistEntryId(payload.waitlist_entry_id);
+
+  const transportConfig = buildTransportConfig();
+  if (!transportConfig) {
+    console.error("waitlist-email blocked: SMTP config missing", {
+      hasSmtpHost: Boolean(process.env.SMTP_HOST || process.env.MAIL_HOST),
+      hasSmtpPort: Boolean(process.env.SMTP_PORT || process.env.MAIL_PORT),
+      hasSmtpUser: Boolean(process.env.SMTP_USER || process.env.MAIL_USER),
+      hasSmtpPass: Boolean(process.env.SMTP_PASS || process.env.MAIL_PASS),
+    });
+    await updateWaitlistEmailStatus(
+      waitlistEntryId,
+      "failed",
+      "SMTP is not configured"
+    );
+    return json(500, {
+      error:
+        "SMTP is not configured. Set SMTP_* or MAIL_* environment variables.",
+    });
+  }
 
   if (!email) {
     console.warn("waitlist-email rejected: missing email");
+    await updateWaitlistEmailStatus(waitlistEntryId, "failed", "Email is required");
     return json(400, { error: "Email is required." });
   }
 
@@ -149,9 +215,15 @@ exports.handler = async (event) => {
       from,
       subject,
     });
+    await updateWaitlistEmailStatus(waitlistEntryId, "sent");
     return json(200, { ok: true });
   } catch (error) {
     console.error("Waitlist confirmation email failed:", error);
+    await updateWaitlistEmailStatus(
+      waitlistEntryId,
+      "failed",
+      error?.message || "Email send failed"
+    );
     return json(502, { error: "Failed to send waitlist confirmation email." });
   }
 };

@@ -779,7 +779,7 @@ async function createCashfreeOrder(payload) {
   return responseBody;
 }
 
-async function sendWaitlistConfirmationEmail(payload) {
+async function sendWaitlistConfirmationEmail(payload, waitlistEntryId = null) {
   const response = await fetch(WAITLIST_CONFIRM_FUNCTION_URL, {
     method: "POST",
     headers: {
@@ -789,6 +789,7 @@ async function sendWaitlistConfirmationEmail(payload) {
       full_name: payload.full_name,
       email: payload.email,
       tournament_name: payload.tournament_name,
+      waitlist_entry_id: waitlistEntryId,
     }),
   });
 
@@ -817,6 +818,18 @@ async function saveRegistration(payload) {
   const tableName = TABLE_BY_MODE[FORM_MODE] || REGISTRATIONS_TABLE;
   const { error } = await supabase.from(tableName).insert(payload);
   if (error) throw error;
+}
+
+async function saveWaitlistRegistration(payload) {
+  const supabase = await getSupabaseClient();
+  const { data, error } = await supabase
+    .from(WAITLIST_TABLE)
+    .insert(payload)
+    .select("id")
+    .single();
+
+  if (error) throw error;
+  return Number(data?.id || 0) || null;
 }
 
 function isDuplicateRegistrationError(error) {
@@ -931,23 +944,32 @@ if (form && paymentButton) {
         }
       }
 
+      const savePayload = {
+        ...payload,
+        ...(paymentOrder
+          ? {
+              payment_status: "pending",
+              cashfree_order_id: paymentOrder.orderId,
+              cashfree_payment_session_id: paymentOrder.paymentSessionId,
+            }
+          : {}),
+      };
+      let waitlistEntryId = null;
+
       try {
-        await saveRegistration({
-          ...payload,
-          ...(paymentOrder
-            ? {
-                payment_status: "pending",
-                cashfree_order_id: paymentOrder.orderId,
-                cashfree_payment_session_id: paymentOrder.paymentSessionId,
-              }
-            : {}),
-        });
+        if (FORM_MODE === "waitlist") {
+          waitlistEntryId = await saveWaitlistRegistration(savePayload);
+        } else {
+          await saveRegistration(savePayload);
+        }
       } catch (saveError) {
-        if (
-          FORM_MODE !== "registration" ||
-          !paymentOrder ||
-          !isDuplicateRegistrationError(saveError)
-        ) {
+        if (FORM_MODE === "waitlist" && isDuplicateRegistrationError(saveError)) {
+          setEmailDuplicateState(true);
+          setFormStatus("Email is already registered.");
+          return;
+        }
+
+        if (!paymentOrder || !isDuplicateRegistrationError(saveError)) {
           throw saveError;
         }
 
@@ -966,7 +988,7 @@ if (form && paymentButton) {
       }
 
       try {
-        await sendWaitlistConfirmationEmail(payload);
+        await sendWaitlistConfirmationEmail(payload, waitlistEntryId);
       } catch (notifyError) {
         console.warn(
           "Waitlist saved but confirmation email failed:",

@@ -5,16 +5,10 @@ const SUPABASE_CDN_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 const REGISTRATIONS_TABLE = "tournament_registrations";
 const TOURNAMENT_SLUG = "the_yard_knockout";
 const LAST_REGISTRATION_EMAIL_KEY = "yarddeck_last_registration_email";
-const TEST_REGISTRATION_LIMIT = 32;
 const HOME_REGISTER_PATH = "/registration/The_Yard_Knockout/";
-const HOME_NOTIFY_PATH = "/notify/";
-const HOME_OPEN_STATUS_TEXT = "Registration Open";
-const HOME_CLOSED_STATUS_TEXT = "Registartion Closed";
-const HOME_OPEN_CTA_TEXT = "Register Now";
-const HOME_CLOSED_CTA_TEXT = "Notify Me if Spot Opens";
-const REGISTRATION_COUNT_RPC = "get_tournament_registration_count";
+const HOME_OPEN_STATUS_TEXT = "Interest Registration Open";
+const HOME_OPEN_CTA_TEXT = "Join Waitlist";
 const HOME_OPEN_CTA_ICON = "assets/arrow-light.svg";
-const HOME_CLOSED_CTA_ICON = "assets/Notify_home.svg";
 
 function updateAccountLinks(isSignedIn) {
   document.querySelectorAll(".account-link").forEach((link) => {
@@ -71,22 +65,7 @@ function normalizeEmailForMatch(rawEmail) {
   return `${localPart}@${domain}`;
 }
 
-function coerceCountValue(value) {
-  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-  if (value && typeof value === "object") {
-    if (typeof value.count !== "undefined") return coerceCountValue(value.count);
-    if (typeof value.registration_count !== "undefined") {
-      return coerceCountValue(value.registration_count);
-    }
-  }
-  return 0;
-}
-
-function setHomeTournamentState(isFull) {
+function setHomeTournamentState() {
   const homeCard = document.querySelector("[data-home-event-card]");
   const statusPill = document.querySelector("[data-home-status-pill]");
   const statusText = document.querySelector("[data-home-status-text]");
@@ -100,59 +79,30 @@ function setHomeTournamentState(isFull) {
     return;
   }
 
-  homeCard.classList.toggle("event-card--waitlist", isFull);
-  statusPill.classList.toggle("status-pill--waitlist", isFull);
-  cardCta.classList.toggle("small-cta--waitlist", isFull);
+  homeCard.classList.remove("event-card--waitlist");
+  statusPill.classList.remove("status-pill--waitlist");
+  cardCta.classList.remove("small-cta--waitlist");
 
   if (primaryCta) {
-    primaryCta.classList.toggle("primary-cta--waitlist", isFull);
+    primaryCta.classList.remove("primary-cta--waitlist");
   }
 
-  statusText.textContent = isFull ? HOME_CLOSED_STATUS_TEXT : HOME_OPEN_STATUS_TEXT;
-  cardCtaText.textContent = isFull ? HOME_CLOSED_CTA_TEXT : HOME_OPEN_CTA_TEXT;
-  cardCta.href = isFull ? HOME_NOTIFY_PATH : HOME_REGISTER_PATH;
+  statusText.textContent = HOME_OPEN_STATUS_TEXT;
+  cardCtaText.textContent = HOME_OPEN_CTA_TEXT;
+  cardCta.href = HOME_REGISTER_PATH;
   if (cardCtaIcon) {
-    cardCtaIcon.src = isFull ? HOME_CLOSED_CTA_ICON : HOME_OPEN_CTA_ICON;
+    cardCtaIcon.src = HOME_OPEN_CTA_ICON;
   }
 
   if (primaryCta && primaryCtaText) {
-    primaryCtaText.textContent = isFull ? "Notify Me" : HOME_OPEN_CTA_TEXT;
-    primaryCta.href = isFull ? HOME_NOTIFY_PATH : HOME_REGISTER_PATH;
+    primaryCtaText.textContent = HOME_OPEN_CTA_TEXT;
+    primaryCta.href = HOME_REGISTER_PATH;
   }
 }
 
-async function getTournamentRegistrationCount(supabaseClient) {
-  const rpcResult = await supabaseClient.rpc(REGISTRATION_COUNT_RPC, {
-    p_tournament_slug: TOURNAMENT_SLUG,
-  });
-  if (!rpcResult.error) {
-    return coerceCountValue(rpcResult.data);
-  }
-
-  const { count, error } = await supabaseClient
-    .from(REGISTRATIONS_TABLE)
-    .select("id", { count: "exact", head: true })
-    .eq("tournament_slug", TOURNAMENT_SLUG);
-
-  if (error) throw error;
-  return coerceCountValue(count);
-}
-
-async function syncHomeTournamentState(supabaseClient) {
+async function syncHomeTournamentState() {
   if (!document.querySelector("[data-home-event-card]")) return;
-
-  if (!supabaseClient) {
-    setHomeTournamentState(false);
-    return;
-  }
-
-  try {
-    const registrationCount = await getTournamentRegistrationCount(supabaseClient);
-    setHomeTournamentState(registrationCount >= TEST_REGISTRATION_LIMIT);
-  } catch (error) {
-    console.error("Failed to load tournament capacity:", error?.message || error);
-    setHomeTournamentState(false);
-  }
+  setHomeTournamentState();
 }
 
 async function hasRegistrationForCurrentUser(supabaseClient, email) {
@@ -330,7 +280,7 @@ async function initAuth() {
     const isLoggedInFallback = localStorage.getItem(AUTH_KEY) === "true";
     updateAccountLinks(isLoggedInFallback);
     setTournamentParticipationVisible(false);
-    await syncHomeTournamentState(null);
+    await syncHomeTournamentState();
 
     if (window.location.pathname.startsWith("/user-account") && !isLoggedInFallback) {
       window.location.replace("/account/");
@@ -351,7 +301,7 @@ async function initAuth() {
   updateAccountLinks(isLoggedIn);
   updateAccountName(session);
   await syncTournamentParticipation(supabaseClient, session);
-  await syncHomeTournamentState(supabaseClient);
+  await syncHomeTournamentState();
 
   if (window.location.pathname.startsWith("/user-account") && !isLoggedIn) {
     window.location.replace("/account/");
@@ -368,7 +318,7 @@ async function initAuth() {
     updateAccountLinks(signedIn);
     updateAccountName(nextSession);
     await syncTournamentParticipation(supabaseClient, nextSession);
-    await syncHomeTournamentState(supabaseClient);
+    await syncHomeTournamentState();
 
     if (!signedIn && window.location.pathname.startsWith("/user-account")) {
       window.location.replace("/account/");
