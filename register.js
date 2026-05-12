@@ -46,6 +46,7 @@ let isEmailVerified = false;
 let hasAuthSession = false;
 let otpSentForEmail = "";
 let verifiedEmail = "";
+let authSessionEmail = "";
 let otpCooldownRemaining = 0;
 let otpCooldownTimer = null;
 let otpLimitTimer = null;
@@ -179,13 +180,34 @@ function clearOtpInputStatus() {
   }
 }
 
+function isCurrentEmailBackedBySession(email = emailInput?.value || "") {
+  const normalizedEmail = normalizeEmailForMatch(email);
+  return Boolean(authSessionEmail && normalizedEmail && normalizedEmail === authSessionEmail);
+}
+
 function resetOtpState() {
   const currentEmail = normalizeEmailForMatch(emailInput?.value || "");
   if (isEmailVerified && currentEmail === verifiedEmail) {
+    hasAuthSession = isCurrentEmailBackedBySession(currentEmail);
     updatePaymentState();
     return;
   }
 
+  if (isCurrentEmailBackedBySession(currentEmail)) {
+    hasAuthSession = true;
+    isEmailVerified = true;
+    verifiedEmail = currentEmail;
+    setEmailVerifiedState(true);
+    otpInputs.forEach((input) => {
+      input.value = "";
+      input.disabled = true;
+    });
+    setOtpStatus("Email already verified", "success");
+    updatePaymentState();
+    return;
+  }
+
+  hasAuthSession = false;
   isEmailVerified = false;
   otpSentForEmail = "";
   verifiedEmail = "";
@@ -448,16 +470,8 @@ async function syncOtpStateWithSession() {
   try {
     const supabase = await getSupabaseClient();
     const session = await getCurrentSession(supabase);
-    hasAuthSession = Boolean(session);
-    if (hasAuthSession) {
-      isEmailVerified = true;
-      verifiedEmail = normalizeEmailForMatch(session?.user?.email || "");
-      setEmailVerifiedState(true);
-      setOtpStatus("Email already verified", "success");
-      otpInputs.forEach((input) => {
-        input.disabled = true;
-      });
-    }
+    authSessionEmail = normalizeEmailForMatch(session?.user?.email || "");
+    resetOtpState();
   } catch (error) {
     console.warn("Unable to initialize OTP state:", error.message || error);
   } finally {
@@ -620,13 +634,17 @@ async function sendEmailOtp() {
   }
 
   const session = await getCurrentSession(supabase);
-  hasAuthSession = Boolean(session);
+  authSessionEmail = normalizeEmailForMatch(session?.user?.email || "");
+  hasAuthSession = isCurrentEmailBackedBySession(email);
 
-  if (session) {
+  if (hasAuthSession) {
     isEmailVerified = true;
-    verifiedEmail = normalizeEmailForMatch(session?.user?.email || email);
+    verifiedEmail = email;
     setEmailVerifiedState(true);
     setOtpStatus("Email already verified", "success");
+    otpInputs.forEach((input) => {
+      input.disabled = true;
+    });
     updatePaymentState();
     return;
   }
@@ -714,6 +732,8 @@ async function verifyEmailOtp() {
 
     if (verifyError) throw verifyError;
 
+    hasAuthSession = true;
+    authSessionEmail = otpSentForEmail;
     isEmailVerified = true;
     verifiedEmail = otpSentForEmail;
     setEmailVerifiedState(true);
@@ -847,26 +867,32 @@ if (form && paymentButton) {
 
       const payload = getFormPayload();
       const session = await getCurrentSession(supabase);
-      const isLoggedIn = Boolean(session);
-      hasAuthSession = isLoggedIn;
+      authSessionEmail = normalizeEmailForMatch(session?.user?.email || "");
+      const isSessionEmailMatch = isCurrentEmailBackedBySession(payload.email);
+      hasAuthSession = isSessionEmailMatch;
+      if (isSessionEmailMatch) {
+        isEmailVerified = true;
+        verifiedEmail = payload.email;
+        setEmailVerifiedState(true);
+      }
       let paymentOrder = null;
 
       if (FORM_MODE === "registration") {
-        if (!isLoggedIn && otpInputs.length > 0 && !isEmailVerified) {
+        if (otpInputs.length > 0 && !isEmailVerified && !isSessionEmailMatch) {
           setOtpStatus("Please verify your Gmail before payment.");
           return;
         }
 
         const availability = await checkRegistrationAvailability(supabase, payload);
 
-        if (isLoggedIn && availability.loggedInRegistered) {
+        if (isSessionEmailMatch && availability.loggedInRegistered) {
           localStorage.setItem(LAST_REGISTRATION_EMAIL_KEY, payload.email);
           window.location.href =
             SUCCESS_REDIRECT_BY_MODE[FORM_MODE] || "/registration_success/";
           return;
         }
 
-        if (!isLoggedIn && showDuplicateRegistrationWarnings(availability)) {
+        if (!isSessionEmailMatch && showDuplicateRegistrationWarnings(availability)) {
           return;
         }
 
