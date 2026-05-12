@@ -78,16 +78,12 @@
 
         <form class="registration-form" action="/waitlist_confirmed/" method="get" data-mode="waitlist">
           <label class="field">
-            <span>Full Name*</span>
+            <span>Full Name<span class="required-asterisk">*</span></span>
             <input type="text" name="full-name" autocomplete="name" required>
           </label>
 
           <fieldset class="skill-field">
-            <legend>Pickleball Skill Level (self-assessed)*</legend>
-            <p>
-              Your self-assessed skill level is only used for initial registration. As you participate in matches and tournaments on Yard Deck,
-              your player ranking and skill level will be automatically evaluated based on your match performance and results.
-            </p>
+            <legend>Pickleball Skill Level (self-assessed)<span class="required-asterisk">*</span></legend>
             <div class="skill-options" aria-label="Pickleball skill level">
               <label><input type="radio" name="skill" value="1" required><span>1</span></label>
               <label><input type="radio" name="skill" value="2"><span>2</span></label>
@@ -107,7 +103,7 @@
           </fieldset>
 
           <label class="field" data-field="email">
-            <span>Email Address*</span>
+            <span>Email Address<span class="required-asterisk">*</span></span>
             <small>Gmail accounts only.</small>
             <span class="input-with-icon">
               <input type="email" name="email" autocomplete="email" pattern=".+@gmail\.com" required>
@@ -117,7 +113,7 @@
           </label>
 
           <label class="field">
-            <span>WhatsApp Phone Number *</span>
+            <span>WhatsApp Phone Number <span class="required-asterisk">*</span></span>
             <span class="phone-input">
               <span>+91</span>
               <input type="tel" name="phone" autocomplete="tel" required>

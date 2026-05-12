@@ -19,6 +19,7 @@ const REGISTRATION_COUNT_RPC = "get_tournament_registration_count";
 const REGISTRATION_AVAILABILITY_RPC = "check_tournament_registration_availability";
 const WAITLIST_EMAIL_EXISTS_RPC = "check_tournament_notify_email_exists";
 const CASHFREE_ORDER_FUNCTION_URL = "/.netlify/functions/create-cashfree-order";
+const WAITLIST_CONFIRM_FUNCTION_URL = "/.netlify/functions/send-waitlist-confirmation";
 const CASHFREE_MODE = "sandbox";
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
 const OTP_SEND_LIMIT = 3;
@@ -778,6 +779,27 @@ async function createCashfreeOrder(payload) {
   return responseBody;
 }
 
+async function sendWaitlistConfirmationEmail(payload) {
+  const response = await fetch(WAITLIST_CONFIRM_FUNCTION_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      full_name: payload.full_name,
+      email: payload.email,
+      tournament_name: payload.tournament_name,
+    }),
+  });
+
+  if (!response.ok) {
+    const responseBody = await response.json().catch(() => ({}));
+    throw new Error(
+      responseBody.error || "Unable to send waitlist confirmation email."
+    );
+  }
+}
+
 async function openCashfreeCheckout(paymentSessionId) {
   if (typeof window.Cashfree !== "function") {
     throw new Error("Cashfree checkout SDK is not loaded.");
@@ -942,6 +964,16 @@ if (form && paymentButton) {
         await openCashfreeCheckout(paymentOrder.paymentSessionId);
         return;
       }
+
+      try {
+        await sendWaitlistConfirmationEmail(payload);
+      } catch (notifyError) {
+        console.warn(
+          "Waitlist saved but confirmation email failed:",
+          notifyError?.message || notifyError
+        );
+      }
+
       window.location.href =
         SUCCESS_REDIRECT_BY_MODE[FORM_MODE] || "/registration_success/";
     } catch (error) {
