@@ -640,7 +640,8 @@ img {
   background: var(--black);
 }
 
-[data-home-event-card] {
+[data-home-event-card],
+.tournament-card--home-style {
   border-color: var(--yellow);
 }
 
@@ -732,7 +733,8 @@ img {
   gap: 72px;
 }
 
-[data-home-event-card] .event-actions {
+[data-home-event-card] .event-actions,
+.tournament-card--home-style .event-actions {
   flex-basis: 250px;
   gap: 24px;
 }
@@ -757,15 +759,18 @@ img {
   height: 8px;
 }
 
-[data-home-status-pill] {
+[data-home-status-pill],
+.tournament-card--home-style .status-pill {
   border-color: var(--yellow);
 }
 
-[data-home-status-pill] img {
+[data-home-status-pill] img,
+.tournament-card--home-style .status-pill img {
   display: none;
 }
 
-[data-home-status-pill]::before {
+[data-home-status-pill]::before,
+.tournament-card--home-style .status-pill::before {
   content: "";
   width: 8px;
   height: 8px;
@@ -807,7 +812,8 @@ img {
   font-size: 16px;
 }
 
-[data-home-event-card] .event-actions .small-cta {
+[data-home-event-card] .event-actions .small-cta,
+.tournament-card--home-style .event-actions .small-cta {
   width: 100%;
 }
 
@@ -2046,8 +2052,39 @@ img {
     align-items: stretch;
   }
 
+  [data-home-event-card] .event-actions,
+  .tournament-card--home-style .event-actions {
+    flex-basis: auto;
+    justify-content: flex-start;
+    gap: 24px;
+  }
+
+  [data-home-event-card] [data-home-status-pill],
+  .tournament-card--home-style .status-pill {
+    padding: 12px 24px;
+    font-size: 21px;
+  }
+
+  [data-home-event-card] [data-home-status-pill]::before,
+  .tournament-card--home-style .status-pill::before {
+    width: 12px;
+    height: 12px;
+  }
+
   .small-cta {
     width: 100%;
+  }
+
+  [data-home-event-card] .small-cta,
+  .tournament-card--home-style .small-cta {
+    padding: 12px 24px;
+    font-size: 21px;
+  }
+
+  [data-home-event-card] .small-cta img,
+  .tournament-card--home-style .small-cta img {
+    width: 12px;
+    height: 20px;
   }
 
   .small-cta--waitlist {
