@@ -892,6 +892,7 @@ if (form && paymentButton) {
     if (isSubmitting) return;
 
     isSubmitting = true;
+    let shouldResetSubmittingState = true;
     updatePaymentState();
 
     try {
@@ -900,6 +901,7 @@ if (form && paymentButton) {
       if (FORM_MODE === "registration") {
         const full = await isRegistrationFull(supabase);
         if (full) {
+          shouldResetSubmittingState = false;
           window.location.href = "/notify/";
           return;
         }
@@ -927,6 +929,7 @@ if (form && paymentButton) {
 
         if (isSessionEmailMatch && availability.loggedInRegistered) {
           localStorage.setItem(LAST_REGISTRATION_EMAIL_KEY, payload.email);
+          shouldResetSubmittingState = false;
           window.location.href =
             SUCCESS_REDIRECT_BY_MODE[FORM_MODE] || "/registration_success/";
           return;
@@ -1001,11 +1004,14 @@ if (form && paymentButton) {
         );
       }
 
+      shouldResetSubmittingState = false;
       window.location.href =
         SUCCESS_REDIRECT_BY_MODE[FORM_MODE] || "/registration_success/";
+      return;
     } catch (error) {
       console.error("Failed to save form submission:", error);
       if (FORM_MODE === "waitlist" && shouldTreatWaitlistErrorAsSuccess(error)) {
+        shouldResetSubmittingState = false;
         window.location.href = "/waitlist_confirmed/";
         return;
       }
@@ -1029,10 +1035,14 @@ if (form && paymentButton) {
         );
         return;
       }
+      shouldResetSubmittingState = false;
       window.location.href = "/registration_failed/";
+      return;
     } finally {
-      isSubmitting = false;
-      updatePaymentState();
+      if (shouldResetSubmittingState) {
+        isSubmitting = false;
+        updatePaymentState();
+      }
     }
   });
 
