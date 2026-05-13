@@ -1394,11 +1394,55 @@ img {
 }
 
 .registration-form[data-mode="waitlist"] .payment-button {
+  position: relative;
+  overflow: hidden;
   gap: 32px;
 }
 
 .registration-form:not([data-mode="waitlist"]) .payment-button--cashfree {
   font-size: inherit;
+}
+
+.registration-form[data-mode="waitlist"] .payment-button.is-buffering {
+  cursor: progress;
+}
+
+.registration-form[data-mode="waitlist"] .payment-button.is-buffering > * {
+  opacity: 0;
+}
+
+.registration-form[data-mode="waitlist"] .payment-button.is-buffering::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 50%;
+  height: 14px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: linear-gradient(
+    90deg,
+    #000 0%,
+    #000 32%,
+    rgba(0, 0, 0, 0.4) 50%,
+    #000 68%,
+    #000 100%
+  );
+  background-size: 230% 100%;
+  animation: waitlist-buffer-slide 1s linear infinite;
+}
+
+.registration-form[data-mode="waitlist"] .payment-button.is-buffering:disabled {
+  opacity: 1;
+}
+
+@keyframes waitlist-buffer-slide {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -30% 0;
+  }
 }
 
 .payment-button:disabled {

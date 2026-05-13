@@ -90,6 +90,11 @@ function coerceCountValue(value) {
 function updatePaymentState() {
   if (!form || !paymentButton) return;
   const requiresOtp = FORM_MODE === "registration" && otpInputs.length > 0;
+  const isWaitlistSubmitting = FORM_MODE === "waitlist" && isSubmitting;
+
+  paymentButton.classList.toggle("is-buffering", isWaitlistSubmitting);
+  paymentButton.setAttribute("aria-busy", isWaitlistSubmitting ? "true" : "false");
+
   paymentButton.disabled =
     isSubmitting ||
     isCheckingEmailDuplicate ||
