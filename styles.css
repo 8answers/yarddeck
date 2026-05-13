@@ -1405,6 +1405,8 @@ img {
 
 .registration-form[data-mode="waitlist"] .payment-button.is-buffering {
   cursor: progress;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 .registration-form[data-mode="waitlist"] .payment-button.is-buffering > * {
@@ -1414,34 +1416,27 @@ img {
 .registration-form[data-mode="waitlist"] .payment-button.is-buffering::after {
   content: "";
   position: absolute;
-  left: 12px;
-  right: 12px;
+  left: 50%;
   top: 50%;
-  height: 14px;
-  border-radius: 999px;
-  transform: translateY(-50%);
-  background: linear-gradient(
-    90deg,
-    #000 0%,
-    #000 32%,
-    rgba(0, 0, 0, 0.4) 50%,
-    #000 68%,
-    #000 100%
-  );
-  background-size: 230% 100%;
-  animation: waitlist-buffer-slide 1s linear infinite;
+  width: 22px;
+  height: 22px;
+  border: 3px solid #000;
+  border-top-color: rgba(0, 0, 0, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: waitlist-buffer-spin 0.8s linear infinite;
 }
 
 .registration-form[data-mode="waitlist"] .payment-button.is-buffering:disabled {
   opacity: 1;
 }
 
-@keyframes waitlist-buffer-slide {
+@keyframes waitlist-buffer-spin {
   from {
-    background-position: 200% 0;
+    transform: translate(-50%, -50%) rotate(0deg);
   }
   to {
-    background-position: -30% 0;
+    transform: translate(-50%, -50%) rotate(360deg);
   }
 }
 
