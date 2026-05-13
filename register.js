@@ -914,7 +914,7 @@ if (form && paymentButton) {
 
       if (FORM_MODE === "registration") {
         if (otpInputs.length > 0 && !isEmailVerified && !isSessionEmailMatch) {
-          setOtpStatus("Please verify your Gmail before payment.");
+          setOtpStatus("Please verify your email before payment.");
           return;
         }
 

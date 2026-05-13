@@ -4,7 +4,7 @@ create table if not exists public.tournament_registrations (
   tournament_slug text not null,
   full_name text not null,
   skill_level integer not null check (skill_level between 1 and 10),
-  email text not null check (email ~* '^[A-Z0-9._%+-]+@gmail\.com$'),
+  email text not null check (email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'),
   phone_country_code text not null default '+91',
   phone_number text not null,
   terms_accepted boolean not null default false,
@@ -30,7 +30,7 @@ create table if not exists public.tournament_notify_emails (
   tournament_slug text not null,
   full_name text not null,
   skill_level integer not null check (skill_level between 1 and 10),
-  email text not null check (email ~* '^[A-Z0-9._%+-]+@gmail\.com$'),
+  email text not null check (email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'),
   phone_country_code text not null default '+91',
   phone_number text not null,
   terms_accepted boolean not null default false,
@@ -72,3 +72,15 @@ create policy "Public can read notify emails for duplicate check"
   for select
   to anon
   using (true);
+
+alter table public.tournament_registrations
+  drop constraint if exists tournament_registrations_email_check;
+alter table public.tournament_registrations
+  add constraint tournament_registrations_email_check
+  check (email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$');
+
+alter table public.tournament_notify_emails
+  drop constraint if exists tournament_notify_emails_email_check;
+alter table public.tournament_notify_emails
+  add constraint tournament_notify_emails_email_check
+  check (email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$');
