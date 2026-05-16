@@ -1822,6 +1822,12 @@ img {
     gap: 24px;
   }
 
+  [data-home-event-card] .event-actions,
+  .tournament-card--home-style .event-actions {
+    flex-basis: auto;
+    justify-content: flex-start;
+  }
+
   .registration-event-card {
     min-height: auto;
   }
