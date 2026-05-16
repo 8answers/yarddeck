@@ -7,7 +7,7 @@ const TOURNAMENT_SLUG = "the_yard_knockout";
 const LAST_REGISTRATION_EMAIL_KEY = "yarddeck_last_registration_email";
 const HOME_REGISTER_PATH = "/registration/The_Yard_Knockout/";
 const HOME_OPEN_STATUS_TEXT = "Interest Registration Open";
-const HOME_OPEN_CTA_TEXT = "Join Waitlist";
+const HOME_OPEN_CTA_TEXT = "(No Fees) Join Waitlist";
 const HOME_OPEN_CTA_ICON = "assets/arrow-light.svg";
 
 function updateAccountLinks(isSignedIn) {
